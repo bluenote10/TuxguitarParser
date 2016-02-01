@@ -2,7 +2,7 @@ name := "TuxguitarParser"
 
 version := "0.1.0"
 
-scalaVersion := "2.10.3"
+scalaVersion := "2.11.7"
 
 // add tuxguitar dependencies
 // cf: https://groups.google.com/forum/?fromgroups=#!topic/simple-build-tool/NO8MLUrFGmg
