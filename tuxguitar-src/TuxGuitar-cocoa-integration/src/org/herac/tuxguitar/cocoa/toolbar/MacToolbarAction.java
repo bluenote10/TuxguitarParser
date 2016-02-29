@@ -1,19 +1,12 @@
 package org.herac.tuxguitar.cocoa.toolbar;
 
-import org.herac.tuxguitar.gui.TuxGuitar;
-import org.herac.tuxguitar.util.TGSynchronizer;
+import org.herac.tuxguitar.app.TuxGuitar;
+import org.herac.tuxguitar.app.action.impl.view.TGToggleToolbarsAction;
+import org.herac.tuxguitar.editor.action.TGActionProcessor;
 
 public class MacToolbarAction {
 	
 	protected static void toogleToolbar(){
-		try {
-			TGSynchronizer.instance().runLater(new TGSynchronizer.TGRunnable() {
-				public void run() throws Throwable {
-					TuxGuitar.instance().getItemManager().toogleToolbarVisibility();
-				}
-			});
-		} catch (Throwable e) {
-			e.printStackTrace();
-		}
+		new TGActionProcessor(TuxGuitar.getInstance().getContext(), TGToggleToolbarsAction.NAME).process();
 	}
 }

@@ -9,7 +9,7 @@ import javax.sound.midi.MidiSystem;
 import javax.sound.midi.MidiUnavailableException;
 import javax.sound.midi.Sequencer;
 
-import org.herac.tuxguitar.gui.TuxGuitar;
+import org.herac.tuxguitar.app.TuxGuitar;
 import org.herac.tuxguitar.player.base.MidiPlayerException;
 import org.herac.tuxguitar.player.base.MidiSequencer;
 import org.herac.tuxguitar.player.base.MidiSequencerProvider;
@@ -20,13 +20,13 @@ public class MidiSequencerProviderImpl implements MidiSequencerProvider{
 		super();
 	}
 	
-	public List listSequencers() throws MidiPlayerException {
+	public List<MidiSequencer> listSequencers() throws MidiPlayerException {
 		try {
-			List sequencers = new ArrayList();
+			List<MidiSequencer> sequencers = new ArrayList<MidiSequencer>();
 			MidiDevice.Info[] infos = MidiSystem.getMidiDeviceInfo();
 			for(int i = 0; i < infos.length; i++){
 				try {
-					Iterator it = sequencers.iterator();
+					Iterator<MidiSequencer> it = sequencers.iterator();
 					boolean exists = false;
 					while(it.hasNext()){
 						if( ((MidiSequencer)it.next()).getKey().equals(infos[i].getName()) ){

@@ -2,9 +2,13 @@ package org.herac.tuxguitar.jack.sequencer;
 
 import java.util.List;
 
+import org.herac.tuxguitar.jack.JackClient;
 import org.herac.tuxguitar.song.models.TGDuration;
 
 public class JackTickController {
+	
+	private static final int TRANSPORT_FRAME_WAIT_TIME = 10;
+	private static final int TRANSPORT_FRAME_WAIT_COUNT = 10;
 	
 	private int tempo;
 	private long frame;
@@ -33,7 +37,7 @@ public class JackTickController {
 		synchronized (this.lock) {
 			long frameRate = this.sequencer.getJackClient().getTransportFrameRate();
 			if( updateTransport ){
-				this.sequencer.getJackClient().setTransportFrame( Math.round( tickToFrame(tick, frameRate )) );
+				this.setTransportFrame(Math.round( tickToFrame(tick, frameRate )));
 			}
 			this.frame = this.sequencer.getJackClient().getTransportFrame();
 			this.tick = this.frameToTick( this.frame , frameRate );
@@ -64,12 +68,30 @@ public class JackTickController {
 		return this.tempo;
 	}
 	
+	public void setTransportFrame( long frame ){
+		JackClient jackClient = this.sequencer.getJackClient();
+		jackClient.setTransportFrame( frame );
+		try{
+			Object transportFrameLock = new Object();
+			
+			int tryIndex = 0;
+			int tryCount = TRANSPORT_FRAME_WAIT_COUNT;
+			while(!jackClient.isTransportRunning() && jackClient.getTransportFrame() != frame && (tryIndex++ < tryCount)){
+				synchronized (transportFrameLock) {
+					transportFrameLock.wait(TRANSPORT_FRAME_WAIT_TIME);
+				}
+			}
+		}catch (Throwable throwable) {
+			throwable.printStackTrace();
+		}
+	}
+	
 	public double frameToTick( long frame , long frameRate ){
 		double framePos = 0;
 		double tempo = 120;
 		double tick = TGDuration.QUARTER_TIME;
 		
-		List tempoChanges = this.sequencer.getJackEventController().getTempoChanges();
+		List<long[]> tempoChanges = this.sequencer.getJackEventController().getTempoChanges();
 		for(int i = 0; i < tempoChanges.size(); i ++){
 			long[] tc = (long[])tempoChanges.get(i);
 			double tcTick = tc[0];
@@ -99,7 +121,7 @@ public class JackTickController {
 		double tempo = 120;
 		double frame = 0;
 		
-		List tempoChanges = this.sequencer.getJackEventController().getTempoChanges();
+		List<long[]> tempoChanges = this.sequencer.getJackEventController().getTempoChanges();
 		for(int i = 0; i < tempoChanges.size(); i ++){
 			long[] tc = (long[])tempoChanges.get(i);
 			double tcTick = tc[0];

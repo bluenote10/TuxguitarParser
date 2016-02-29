@@ -5,21 +5,24 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.eclipse.swt.SWT;
+import org.herac.tuxguitar.app.util.TGMessageDialogUtil;
+import org.herac.tuxguitar.app.view.main.TGWindow;
 import org.herac.tuxguitar.community.auth.TGCommunityAuthDialog;
-import org.herac.tuxguitar.gui.TuxGuitar;
-import org.herac.tuxguitar.gui.actions.ActionLock;
-import org.herac.tuxguitar.gui.util.MessageDialog;
 import org.herac.tuxguitar.io.base.TGOutputStreamBase;
 import org.herac.tuxguitar.io.tg.TGOutputStream;
 import org.herac.tuxguitar.song.factory.TGFactory;
 import org.herac.tuxguitar.song.models.TGSong;
+import org.herac.tuxguitar.util.TGContext;
+import org.herac.tuxguitar.util.TGException;
 import org.herac.tuxguitar.util.TGSynchronizer;
+import org.herac.tuxguitar.util.error.TGErrorManager;
 
 public class TGShareSong {
 
-	public TGShareSong( ) {
-		super();
+	private TGContext context;
+	
+	public TGShareSong(TGContext context) {
+		this.context = context;
 	}
 	
 	public void process( TGSong song ) {
@@ -28,73 +31,65 @@ public class TGShareSong {
 			file.setFile( getSongBytes( song ) );
 			this.processDialog(file , null );
 		} catch (Throwable throwable ){
-			MessageDialog.errorMessage(throwable);
+			TGErrorManager.getInstance(this.context).handleError(throwable);
 		}
 	}
 	
 	public void processDialog( final TGShareFile file , final String errors ) {
-		try {
-			TGSynchronizer.instance().runLater(new TGSynchronizer.TGRunnable() {
-				public void run() throws Throwable {
-					TGShareFileDialog fileDialog = new TGShareFileDialog( file , errors );
-					fileDialog.open();
-					if( fileDialog.isAccepted() ){
-						processUpload( file );
-					}
+		TGSynchronizer.getInstance(this.context).executeLater(new Runnable() {
+			public void run() {
+				TGShareFileDialog fileDialog = new TGShareFileDialog(getContext(), file , errors);
+				fileDialog.open();
+				if( fileDialog.isAccepted() ){
+					processUpload( file );
 				}
-			});
-		} catch (Throwable throwable ){
-			MessageDialog.errorMessage(throwable);
-		}
+			}
+		});
 	}
 	
 	public void processAuthDialog( final TGShareFile file ) {
-		try {
-			TGSynchronizer.instance().runLater(new TGSynchronizer.TGRunnable() {
-				public void run() throws Throwable {
-					TGCommunityAuthDialog authDialog = new TGCommunityAuthDialog();
-					authDialog.open();
-					if( authDialog.isAccepted() ){
-						processUpload( file );
-					}
+		TGSynchronizer.getInstance(this.context).executeLater(new Runnable() {
+			public void run() throws TGException {
+				TGCommunityAuthDialog authDialog = new TGCommunityAuthDialog(getContext());
+				authDialog.open();
+				if( authDialog.isAccepted() ){
+					processUpload( file );
 				}
-			});
-		} catch (Throwable throwable ){
-			MessageDialog.errorMessage(throwable);
-		}
+			}
+		});
 	}
 	
 	public void processUpload( final TGShareFile file ) {
 		this.setActiveMode();
 		
 		new Thread( new Runnable() {
-			public void run() {
+			public void run() throws TGException {
 				try {
-					TGShareSongConnection share = new TGShareSongConnection();
+					TGShareSongConnection share = new TGShareSongConnection(getContext());
 					share.uploadFile(file , TGShareSong.this );
 				} catch (Throwable throwable ){
-					MessageDialog.errorMessage(throwable);
+					TGErrorManager.getInstance(getContext()).handleError(throwable);
 				}
 			}
 		} ).start();
 	}
 	
 	public void processResult( TGShareSongResponse response, TGShareFile file ){
-		this.setPasiveMode();
+		this.setPassiveMode();
 		
 		try {
 			String status = response.getStatus();
 			if( status != null && status.equals(TGShareSongConnection.HTTP_STATUS_OK) ){
-				MessageDialog.infoMessage("File Uploaded", "File upload completed!!");
+				TGMessageDialogUtil.infoMessage(this.context, "File Uploaded", "File upload completed!!");
 			}
 			else if( status != null && status.equals(TGShareSongConnection.HTTP_STATUS_UNAUTHORIZED) ){
 				processAuthDialog( file );
 			}
 			else if( status != null && status.equals(TGShareSongConnection.HTTP_STATUS_INVALID) ){
 				String message = new String();
-				List messages = new ArrayList();
+				List<String> messages = new ArrayList<String>();
 				response.loadMessages( messages );
-				Iterator it = messages.iterator();
+				Iterator<String> it = messages.iterator();
 				while( it.hasNext() ){
 					message += ( (String) it.next() + "\r\n" );
 				}
@@ -104,7 +99,7 @@ public class TGShareSong {
 				processDialog( file , "Error: " + status );
 			}
 		} catch (Throwable throwable ){
-			MessageDialog.errorMessage(throwable);
+			TGErrorManager.getInstance(this.context).handleError(throwable);
 		}
 	}
 	
@@ -118,14 +113,14 @@ public class TGShareSong {
 	}
 	
 	public void setActiveMode(){
-		TuxGuitar.instance().lock();
-		TuxGuitar.instance().loadCursor(SWT.CURSOR_WAIT);
-		ActionLock.lock();
+		TGWindow.getInstance(this.context).loadBusyCursor();
 	}
 	
-	public void setPasiveMode(){
-		ActionLock.unlock();
-		TuxGuitar.instance().loadCursor(SWT.CURSOR_ARROW);
-		TuxGuitar.instance().unlock();
+	public void setPassiveMode(){
+		TGWindow.getInstance(this.context).loadDefaultCursor();
+	}
+
+	public TGContext getContext() {
+		return context;
 	}
 }

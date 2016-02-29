@@ -1,20 +1,13 @@
 package org.herac.tuxguitar.carbon.opendoc;
 
-import org.herac.tuxguitar.carbon.opendoc.OpenDocListener;
-import org.herac.tuxguitar.gui.system.plugins.TGPluginException;
-import org.herac.tuxguitar.gui.system.plugins.base.TGPluginAdapter;
+import org.herac.tuxguitar.carbon.TGCarbonIntegrationPlugin;
+import org.herac.tuxguitar.util.TGContext;
+import org.herac.tuxguitar.util.plugin.TGPlugin;
+import org.herac.tuxguitar.util.plugin.TGPluginException;
 
-public class OpenDocPlugin extends TGPluginAdapter {
+public class OpenDocPlugin implements TGPlugin {
 	
 	private OpenDocListener openDocListener;
-	
-	public void init() throws TGPluginException {
-		// Nothing todo
-	}
-	
-	public void close() throws TGPluginException {
-		// Nothing todo
-	}
 	
 	public void setEnabled(boolean enabled) throws TGPluginException {
 		if( this.openDocListener != null ){
@@ -25,5 +18,16 @@ public class OpenDocPlugin extends TGPluginAdapter {
 			this.openDocListener.init();
 		}
 	}
+	
+	public String getModuleId() {
+		return TGCarbonIntegrationPlugin.MODULE_ID;
+	}
+	
+	public void connect(TGContext context) throws TGPluginException {
+		this.setEnabled(true);
+	}
 
+	public void disconnect(TGContext context) throws TGPluginException {
+		this.setEnabled(false);
+	}
 }

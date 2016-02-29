@@ -2,12 +2,19 @@ package org.herac.tuxguitar.io.gtp;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Iterator;
 
+import org.herac.tuxguitar.gm.GMChannelRoute;
+import org.herac.tuxguitar.gm.GMChannelRouter;
+import org.herac.tuxguitar.gm.GMChannelRouterConfigurator;
 import org.herac.tuxguitar.io.base.TGOutputStreamBase;
 import org.herac.tuxguitar.song.factory.TGFactory;
+import org.herac.tuxguitar.song.models.TGChannel;
+import org.herac.tuxguitar.song.models.TGSong;
 
 public abstract class GTPOutputStream extends GTPFileFormat implements TGOutputStreamBase{
 	
+	private GMChannelRouter channelRouter;
 	private OutputStream outputStream;
 	
 	public GTPOutputStream(GTPSettings settings){
@@ -87,5 +94,34 @@ public abstract class GTPOutputStream extends GTPFileFormat implements TGOutputS
 	protected void close() throws IOException{
 		this.outputStream.flush();
 		this.outputStream.close();
+	}
+	
+	protected void configureChannelRouter( TGSong song ){
+		this.channelRouter = new GMChannelRouter();
+		
+		GMChannelRouterConfigurator gmChannelRouterConfigurator = new GMChannelRouterConfigurator(this.channelRouter);
+		gmChannelRouterConfigurator.configureRouter(song.getChannels());
+	}
+	
+	protected GMChannelRoute getChannelRoute( int channelId ){
+		GMChannelRoute gmChannelRoute = this.channelRouter.getRoute(channelId);
+		if( gmChannelRoute == null ){
+			gmChannelRoute = new GMChannelRoute(GMChannelRoute.NULL_VALUE);
+			gmChannelRoute.setChannel1(15);
+			gmChannelRoute.setChannel2(15);
+		}
+		
+		return gmChannelRoute;
+	}
+	
+	protected boolean isPercussionChannel( TGSong song, int channelId ){
+		Iterator<TGChannel> it = song.getChannels();
+		while( it.hasNext() ){
+			TGChannel channel = (TGChannel)it.next();
+			if( channel.getChannelId() == channelId ){
+				return channel.isPercussionChannel();
+			}
+		}
+		return false;
 	}
 }

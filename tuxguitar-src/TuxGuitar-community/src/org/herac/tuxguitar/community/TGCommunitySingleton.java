@@ -1,33 +1,25 @@
 package org.herac.tuxguitar.community;
 
 import org.herac.tuxguitar.community.auth.TGCommunityAuth;
-import org.herac.tuxguitar.gui.system.config.TGConfigManager;
-import org.herac.tuxguitar.gui.system.plugins.TGPluginConfigManager;
+import org.herac.tuxguitar.util.TGContext;
+import org.herac.tuxguitar.util.configuration.TGConfigManager;
+import org.herac.tuxguitar.util.singleton.TGSingletonFactory;
+import org.herac.tuxguitar.util.singleton.TGSingletonUtil;
 
 public class TGCommunitySingleton {
 	
-	private static TGCommunitySingleton instance;
-	
+	private TGContext context;
 	private TGConfigManager config;
 	private TGCommunityAuth auth;
 	
-	private TGCommunitySingleton(){
+	private TGCommunitySingleton(TGContext context){
+		this.context = context;
 		this.auth = new TGCommunityAuth();
 	}
 	
-	public static TGCommunitySingleton getInstance() {
-		synchronized ( TGCommunitySingleton.class ) {
-			if( instance == null ){
-				instance = new TGCommunitySingleton();
-			}
-		}
-		return instance;
-	}
-	
 	public TGConfigManager getConfig(){
-		if(this.config == null){ 
-			this.config = new TGPluginConfigManager("tuxguitar-community");
-			this.config.init();
+		if( this.config == null ){ 
+			this.config = new TGConfigManager(this.context, "tuxguitar-community");
 		}
 		return this.config;
 	}
@@ -45,5 +37,13 @@ public class TGCommunitySingleton {
 	
 	public TGCommunityAuth getAuth(){
 		return this.auth;
+	}
+	
+	public static TGCommunitySingleton getInstance(TGContext context) {
+		return TGSingletonUtil.getInstance(context, TGCommunitySingleton.class.getName(), new TGSingletonFactory<TGCommunitySingleton>() {
+			public TGCommunitySingleton createInstance(TGContext context) {
+				return new TGCommunitySingleton(context);
+			}
+		});
 	}
 }

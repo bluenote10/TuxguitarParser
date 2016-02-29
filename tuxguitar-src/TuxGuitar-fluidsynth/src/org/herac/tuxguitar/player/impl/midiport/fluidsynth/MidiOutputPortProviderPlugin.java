@@ -1,41 +1,24 @@
 package org.herac.tuxguitar.player.impl.midiport.fluidsynth;
 
-import org.eclipse.swt.widgets.Shell;
-import org.herac.tuxguitar.gui.system.plugins.TGPluginSetup;
-import org.herac.tuxguitar.gui.system.plugins.base.TGMidiOutputPortProviderPlugin;
 import org.herac.tuxguitar.player.base.MidiOutputPortProvider;
+import org.herac.tuxguitar.player.plugin.TGMidiOutputPortProviderPlugin;
+import org.herac.tuxguitar.util.TGContext;
 
-public class MidiOutputPortProviderPlugin extends TGMidiOutputPortProviderPlugin implements TGPluginSetup{
+public class MidiOutputPortProviderPlugin extends TGMidiOutputPortProviderPlugin {
 	
 	private MidiOutputPortProviderImpl provider;
 	
-	protected MidiOutputPortProvider getProvider() {
-		return getProviderImpl();
+	protected MidiOutputPortProvider createProvider(TGContext context) {
+		return getProviderImpl(context);
 	}
 	
-	public String getAuthor() {
-		return "Julian Casadesus <julian@casadesus.com.ar>";
+	public String getModuleId() {
+		return MidiSynthPlugin.MODULE_ID;
 	}
 	
-	public String getDescription() {
-		return "FluidSynth output plugin";
-	}
-	
-	public String getName() {
-		return "FluidSynth output plugin";
-	}
-	
-	public String getVersion() {
-		return "1.0";
-	}
-	
-	public void setupDialog(Shell parent) {
-		getProviderImpl().getSettings().configure(parent);
-	}
-	
-	private MidiOutputPortProviderImpl getProviderImpl() {
-		if(this.provider == null){
-			this.provider = new MidiOutputPortProviderImpl();
+	public MidiOutputPortProviderImpl getProviderImpl(TGContext context) {
+		if( this.provider == null ){
+			this.provider = new MidiOutputPortProviderImpl(context);
 		}
 		return this.provider;
 	}

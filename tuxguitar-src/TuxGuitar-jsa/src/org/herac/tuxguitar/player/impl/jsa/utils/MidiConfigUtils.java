@@ -10,36 +10,36 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
-import org.herac.tuxguitar.gui.TuxGuitar;
-import org.herac.tuxguitar.gui.system.config.TGConfigManager;
-import org.herac.tuxguitar.gui.system.plugins.TGPluginConfigManager;
-import org.herac.tuxguitar.gui.util.DialogUtils;
-import org.herac.tuxguitar.gui.util.FileChooser;
-import org.herac.tuxguitar.gui.util.MessageDialog;
+import org.herac.tuxguitar.app.TuxGuitar;
+import org.herac.tuxguitar.app.util.DialogUtils;
+import org.herac.tuxguitar.app.util.TGFileChooser;
+import org.herac.tuxguitar.app.util.TGMessageDialogUtil;
+import org.herac.tuxguitar.app.view.dialog.file.TGFileChooserDialog;
+import org.herac.tuxguitar.app.view.dialog.file.TGFileChooserHandler;
+import org.herac.tuxguitar.util.TGContext;
+import org.herac.tuxguitar.util.configuration.TGConfigManager;
 
 public class MidiConfigUtils {
 	
 	public static final String SOUNDBANK_KEY = "soundbank.custom.path";
 	
-	public static TGConfigManager getConfig(){
-		TGConfigManager config = new TGPluginConfigManager("tuxguitar-jsa");
-		config.init();
-		return config;
+	public static TGConfigManager getConfig(TGContext context){
+		return new TGConfigManager(context, "tuxguitar-jsa");
 	}
 	
-	public static String getSoundbankPath(){
-		return getSoundbankPath(getConfig());
+	public static String getSoundbankPath(TGContext context){
+		return getSoundbankPath(getConfig(context));
 	}
 	
 	public static String getSoundbankPath(final TGConfigManager config){
-		return config.getStringConfigValue(SOUNDBANK_KEY);
+		return config.getStringValue(SOUNDBANK_KEY);
 	}
 	
-	public static void setupDialog(Shell parent) {
-		setupDialog(parent,getConfig());
+	public static void setupDialog(TGContext context, Shell parent) {
+		setupDialog(context, parent, getConfig(context));
 	}
 	
-	public static void setupDialog(Shell parent,final TGConfigManager config) {
+	public static void setupDialog(final TGContext context, final Shell parent, final TGConfigManager config) {
 		final String soundbank = getSoundbankPath(config);
 		
 		final Shell dialog = DialogUtils.newDialog(parent, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
@@ -69,13 +69,14 @@ public class MidiConfigUtils {
 		sbCustomPath.setText( (soundbank == null ? new String() : soundbank)  );
 		
 		final Button sbCustomChooser = new Button(chooser,SWT.PUSH);
-		sbCustomChooser.setImage(TuxGuitar.instance().getIconManager().getFileOpen());
+		sbCustomChooser.setImage(TuxGuitar.getInstance().getIconManager().getFileOpen());
 		sbCustomChooser.addSelectionListener(new SelectionAdapter() {
 			public void widgetSelected(SelectionEvent e) {
-				String fileName = FileChooser.instance().open(dialog,FileChooser.ALL_FORMATS);
-				if(fileName != null){
-					sbCustomPath.setText(fileName);
-				}
+				TGFileChooser.getInstance(context).openChooser(new TGFileChooserHandler() {
+					public void updateFileName(String fileName) {
+						sbCustomPath.setText(fileName);
+					}
+				}, TGFileChooser.ALL_FORMATS, TGFileChooserDialog.STYLE_OPEN);
 			}
 		});
 		
@@ -101,13 +102,13 @@ public class MidiConfigUtils {
 				changed = changed || (selection != null && !selection.equals(soundbank) ) ;
 				if(changed){
 					if(selection != null){
-						config.setProperty(SOUNDBANK_KEY,selection);
+						config.setValue(SOUNDBANK_KEY,selection);
 					}else{
-						config.removeProperty(SOUNDBANK_KEY);
+						config.remove(SOUNDBANK_KEY);
 					}
 					config.save();
 					
-					MessageDialog.infoMessage(TuxGuitar.getProperty("warning"), TuxGuitar.getProperty("jsa.settings.soundbank-restart-message"));
+					TGMessageDialogUtil.infoMessage(context, TuxGuitar.getProperty("warning"), TuxGuitar.getProperty("jsa.settings.soundbank-restart-message"));
 				}
 				dialog.dispose();
 			}

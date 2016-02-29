@@ -12,8 +12,10 @@ import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Spinner;
-import org.herac.tuxguitar.gui.TuxGuitar;
-import org.herac.tuxguitar.gui.util.DialogUtils;
+import org.eclipse.swt.widgets.Text;
+import org.herac.tuxguitar.app.TuxGuitar;
+import org.herac.tuxguitar.app.util.DialogUtils;
+import org.herac.tuxguitar.song.models.TGSong;
 
 public class LilypondSettingsDialog {
 	
@@ -23,17 +25,19 @@ public class LilypondSettingsDialog {
 	
 	private static final int STATUS_ACCEPTED = 2;
 	
+	private TGSong song;
+	
 	protected int status;
 	
-	public LilypondSettingsDialog(){
-		super();
+	public LilypondSettingsDialog(TGSong song){
+		this.song = song;
 	}
 	
 	public LilypondSettings open() {
 		this.status = STATUS_NONE;
 		final LilypondSettings settings = LilypondSettings.getDefaults();
 		
-		final Shell dialog = DialogUtils.newDialog(TuxGuitar.instance().getShell(), SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
+		final Shell dialog = DialogUtils.newDialog(TuxGuitar.getInstance().getShell(), SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
 		dialog.setLayout(new GridLayout(2, false));
 		dialog.setText(TuxGuitar.getProperty("lilypond.options"));
 		
@@ -57,10 +61,10 @@ public class LilypondSettingsDialog {
 		
 		final Combo trackCombo = new Combo(trackGroup, SWT.DROP_DOWN | SWT.READ_ONLY);
 		trackCombo.setLayoutData(getComboData());
-		for(int number = 1; number <= TuxGuitar.instance().getSongManager().getSong().countTracks(); number ++){
-			trackCombo.add(TuxGuitar.instance().getSongManager().getTrack(number).getName());
+		for(int number = 1; number <= this.song.countTracks(); number ++){
+			trackCombo.add(TuxGuitar.getInstance().getSongManager().getTrack(this.song, number).getName());
 		}
-		trackCombo.select(TuxGuitar.instance().getTablatureEditor().getTablature().getCaret().getTrack().getNumber() - 1);
+		trackCombo.select(TuxGuitar.getInstance().getTablatureEditor().getTablature().getCaret().getTrack().getNumber() - 1);
 		trackCombo.setEnabled( settings.getTrack() != LilypondSettings.ALL_TRACKS );
 		
 		final Button trackAllCheck = new Button(trackGroup,SWT.CHECK);
@@ -75,7 +79,7 @@ public class LilypondSettingsDialog {
 		measureGroup.setText(TuxGuitar.getProperty("lilypond.options.measure-range.tip"));
 		
 		final int minSelection = 1;
-		final int maxSelection = TuxGuitar.instance().getSongManager().getSong().countMeasureHeaders();
+		final int maxSelection = this.song.countMeasureHeaders();
 		
 		Label measureFromLabel = new Label(measureGroup, SWT.NULL);
 		measureFromLabel.setText(TuxGuitar.getProperty("lilypond.options.measure-range.from"));
@@ -120,6 +124,16 @@ public class LilypondSettingsDialog {
 				}
 			}
 		});
+		
+		//------------------VERSION OPTIONS------------------
+		Group versionGroup = new Group(columnRight,SWT.SHADOW_ETCHED_IN);
+		versionGroup.setLayout(new GridLayout());
+		versionGroup.setLayoutData(new GridData(SWT.FILL,SWT.FILL,true,true));
+		versionGroup.setText(TuxGuitar.getProperty("lilypond.options.format-version"));
+		
+		final Text lilyVersion = new Text(versionGroup, SWT.LEFT | SWT.BORDER);
+		lilyVersion.setText(settings.getLilypondVersion());
+		lilyVersion.setLayoutData(new GridData(SWT.FILL,SWT.FILL,true,true));
 		
 		//------------------LAYOUT OPTIONS------------------
 		Group layoutGroup = new Group(columnRight,SWT.SHADOW_ETCHED_IN);
@@ -207,6 +221,7 @@ public class LilypondSettingsDialog {
 				settings.setChordDiagramEnabled(chordDiagramsCheck.getSelection());
 				settings.setLyricsEnabled(lyricsCheck.getSelection());
 				settings.setTextEnabled(textsCheck.getSelection());
+				settings.setLilypondVersion(lilyVersion.getText());
 				settings.check();
 				
 				dialog.dispose();

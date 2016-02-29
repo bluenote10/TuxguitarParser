@@ -3,32 +3,39 @@ package org.herac.tuxguitar.tray;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.MenuItem;
-import org.herac.tuxguitar.gui.TuxGuitar;
-import org.herac.tuxguitar.gui.actions.file.ExitAction;
-import org.herac.tuxguitar.gui.actions.transport.TransportPlayAction;
-import org.herac.tuxguitar.gui.actions.transport.TransportStopAction;
+import org.herac.tuxguitar.app.TuxGuitar;
+import org.herac.tuxguitar.app.action.TGActionProcessorListener;
+import org.herac.tuxguitar.app.action.impl.file.TGExitAction;
+import org.herac.tuxguitar.app.action.impl.transport.TGTransportPlayAction;
+import org.herac.tuxguitar.app.action.impl.transport.TGTransportStopAction;
+import org.herac.tuxguitar.util.TGContext;
 
 public class TGTrayMenu {
 	
+	private TGContext context;
 	private Menu menu;
 	private MenuItem play;
 	private MenuItem stop;
 	private MenuItem exit;
 	
+	public TGTrayMenu(TGContext context) {
+		this.context = context;
+	}
+	
 	public void make(){
-		this.menu = new Menu (TuxGuitar.instance().getShell(), SWT.POP_UP);
+		this.menu = new Menu (TuxGuitar.getInstance().getShell(), SWT.POP_UP);
 		
 		this.play = new MenuItem(this.menu,SWT.PUSH);
-		this.play.addSelectionListener(TuxGuitar.instance().getAction(TransportPlayAction.NAME));
+		this.play.addSelectionListener(new TGActionProcessorListener(this.context, TGTransportPlayAction.NAME));
 		
 		this.stop = new MenuItem(this.menu, SWT.PUSH);
-		this.stop.addSelectionListener(TuxGuitar.instance().getAction(TransportStopAction.NAME));
+		this.stop.addSelectionListener(new TGActionProcessorListener(this.context, TGTransportStopAction.NAME));
 		
 		//--SEPARATOR--
 		new MenuItem(this.menu, SWT.SEPARATOR);
 		
 		this.exit = new MenuItem(this.menu, SWT.PUSH);
-		this.exit.addSelectionListener(TuxGuitar.instance().getAction(ExitAction.NAME));
+		this.exit.addSelectionListener(new TGActionProcessorListener(this.context, TGExitAction.NAME));
 		
 		this.loadProperties();
 		this.loadIcons();
@@ -44,8 +51,8 @@ public class TGTrayMenu {
 	
 	public void loadIcons(){
 		if(this.menu != null && !this.menu.isDisposed()){
-			this.stop.setImage(TuxGuitar.instance().getIconManager().getTransportIconStop1());
-			this.play.setImage(TuxGuitar.instance().getIconManager().getTransportIconPlay1());
+			this.stop.setImage(TuxGuitar.getInstance().getIconManager().getTransportIconStop1());
+			this.play.setImage(TuxGuitar.getInstance().getIconManager().getTransportIconPlay1());
 		}
 	}
 	

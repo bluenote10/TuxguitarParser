@@ -1,11 +1,11 @@
 package org.herac.tuxguitar.jack.sequencer;
 
-import org.herac.tuxguitar.gui.TuxGuitar;
 import org.herac.tuxguitar.jack.JackClient;
 import org.herac.tuxguitar.player.base.MidiPlayerException;
 import org.herac.tuxguitar.player.base.MidiSequenceHandler;
 import org.herac.tuxguitar.player.base.MidiSequencer;
 import org.herac.tuxguitar.player.base.MidiTransmitter;
+import org.herac.tuxguitar.util.TGContext;
 
 public class JackSequencer implements MidiSequencer{
 	
@@ -18,14 +18,16 @@ public class JackSequencer implements MidiSequencer{
 	private boolean transportRunning;
 	private boolean transportLockTick;
 	private MidiTransmitter transmitter;
+	private Object jackLock;
 	private JackTickController jackTickController;
 	private JackEventController jackEventController;
 	private JackEventDispacher jackEventDispacher;
 	private JackTrackController jackTrackController;
 	private JackTimer jackTimer;
 	private JackClient jackClient;
+	private JackMidiPlayerStarter jackMidiPlayerStarter;
 	
-	public JackSequencer(JackClient jackClient){
+	public JackSequencer(TGContext context, JackClient jackClient){
 		this.stopped = true;
 		this.running = false;
 		this.transportRunning = false;
@@ -33,11 +35,13 @@ public class JackSequencer implements MidiSequencer{
 		this.transportTryCount = 10;
 		this.transportTryNumber = 0;
 		this.jackClient = jackClient;
+		this.jackLock = new Object();
 		this.jackTickController = new JackTickController(this);
 		this.jackEventController = new JackEventController(this);
 		this.jackEventDispacher = new JackEventDispacher(this);
 		this.jackTrackController = new JackTrackController(this);
 		this.jackTimer = new JackTimer(this);
+		this.jackMidiPlayerStarter = new JackMidiPlayerStarter(context, this);
 	}
 	
 	public JackClient getJackClient(){
@@ -89,6 +93,11 @@ public class JackSequencer implements MidiSequencer{
 		this.jackTickController.notifyTick(event.getTick());
 	}
 	
+	public void clearEvents() {
+		this.jackEventController.clearEvents();
+		this.jackTickController.clearTick();
+	}
+	
 	public boolean isRunning() {
 		return this.running;
 	}
@@ -98,11 +107,13 @@ public class JackSequencer implements MidiSequencer{
 	}
 	
 	public void start( boolean startTransport ) throws MidiPlayerException{
-		if(!this.running ){
-			this.setTempo(120);
-			this.running = true;
-			if( startTransport ){
-				this.jackClient.setTransportStart();
+		synchronized ( this.jackLock ) {
+			if(!this.running ){
+				this.setTempo(120);
+				this.running = true;
+				if( startTransport ){
+					this.jackClient.setTransportStart();
+				}
 			}
 		}
 	}
@@ -112,29 +123,35 @@ public class JackSequencer implements MidiSequencer{
 	}
 	
 	public void stop( boolean stopTransport ) throws MidiPlayerException{
-		if( this.running ){
-			this.running = false;
-			if( stopTransport ){
-				this.jackClient.setTransportStop();
+		synchronized ( this.jackLock ) {
+			if( this.running ){
+				this.running = false;
+				if( stopTransport ){
+					this.jackClient.setTransportStop();
+				}
 			}
 		}
 	}
 	
-	public void reset(boolean systemReset)  throws MidiPlayerException{
+	public void stopAndClearEvents() throws MidiPlayerException{
+		synchronized ( this.jackLock ) {
+			this.stop( true );
+			this.reset();
+			this.clearEvents();
+			this.stopped = true;
+		}
+	}
+	
+	public void reset()  throws MidiPlayerException{
 		this.getTransmitter().sendAllNotesOff();
-		for(int channel = 0; channel < 16;channel ++){
-			this.getTransmitter().sendPitchBend(channel, 64);
-		}
-		if( systemReset ){
-			this.getTransmitter().sendSystemReset();
-		}
+		this.getTransmitter().sendPitchBendReset();
 	}
 	
 	protected void startPlayer(){
 		// Make sure sequencer was already initialized.
 		if( this.transmitter != null ){
 			this.transportLockTick = true;
-			TuxGuitar.instance().getTransport().play();
+			this.jackMidiPlayerStarter.start();
 		}
 	}
 	
@@ -147,9 +164,13 @@ public class JackSequencer implements MidiSequencer{
 	}
 	
 	public void open() {
-		if( !this.jackClient.isTransportOpen() ){
+		if(!this.jackClient.isOpen()){
+			this.jackClient.open();
+		}
+		if(!this.jackClient.isTransportOpen() ){
 			this.jackClient.openTransport();
 		}
+		this.jackMidiPlayerStarter.open();
 		this.jackTimer.setRunning( true );
 	}
 	
@@ -158,21 +179,24 @@ public class JackSequencer implements MidiSequencer{
 		if(this.isRunning()){
 			this.stop();
 		}
+		this.jackMidiPlayerStarter.close();
 		if( this.jackClient.isTransportOpen() ){
 			this.jackClient.closeTransport();
 		}
 	}
 	
 	public void check() throws MidiPlayerException {
-		if( !this.jackClient.isServerRunning() || !this.jackClient.isTransportOpen() ){
+		if(!this.jackClient.isOpen() || !this.jackClient.isTransportOpen() ){
 			this.open();
-			if( !this.jackClient.isServerRunning() || !this.jackClient.isTransportOpen() ){
+			if(!this.jackClient.isOpen() || !this.jackClient.isTransportOpen() ){
 				throw new MidiPlayerException("Jack server not running?");
 			}
 		}
 	}
 	
 	public MidiSequenceHandler createSequence(int tracks) throws MidiPlayerException{
+		this.stopAndClearEvents();
+		
 		return new JackSequenceHandler(this,tracks);
 	}
 	
@@ -193,51 +217,45 @@ public class JackSequencer implements MidiSequencer{
 	}
 	
 	protected void process() throws MidiPlayerException{
-		boolean transportRunning = this.jackClient.isTransportRunning();
-		
-		// Check if state was changed
-		if(this.transportRunning != transportRunning ){
-			if( transportRunning && !this.running ){
-				// Transport was started
+		synchronized ( this.jackLock ) {
+			boolean transportRunning = this.jackClient.isTransportRunning();
+			
+			// Check if transport was started
+			if( transportRunning && !this.transportRunning && !this.running ){
 				this.startPlayer();
-			}else if( !transportRunning ){
-				// Transport was stopped.
-				this.running = false;
 			}
+			else{
+				if( this.running && transportRunning ){
+					long transportUID = this.jackClient.getTransportUID();
+					if( this.transportUID != transportUID ){
+						this.setTickPosition( 0 , false );
+					}
+					if(this.reset){
+						this.reset();
+						this.reset = false;
+						this.jackEventController.reset();
+					}
+					this.stopped = false;
+					this.jackTickController.process();
+					this.jackEventController.process();
+					if(this.getTickPosition() > this.getTickLength()){
+						this.stopAndClearEvents();
+					}
+					this.transportUID = transportUID;
+				}
+				else if( this.running ){
+					// Check if transport was stopped.
+					if( this.transportTryNumber++ > this.transportTryCount ){
+						this.running = false;
+						this.transportTryNumber = 0;
+					}
+				}
+				else if(!this.stopped){
+					this.stopAndClearEvents();
+				}
+			}
+			this.transportRunning = transportRunning;
 		}
-		else{
-			if( this.running && transportRunning ){
-				long transportUID = this.jackClient.getTransportUID();
-				if( this.transportUID != transportUID ){
-					this.setTickPosition( 0 , false );
-				}
-				if(this.reset){
-					this.reset( false );
-					this.reset = false;
-					this.jackEventController.reset();
-				}
-				this.stopped = false;
-				this.jackTickController.process();
-				this.jackEventController.process();
-				if(this.getTickPosition() > this.getTickLength()){
-					this.stop( true );
-				}
-				this.transportUID = transportUID;
-			}
-			else if( !this.stopped ){
-				this.stopped = true;
-				this.jackEventController.clearEvents();
-				this.jackTickController.clearTick();
-				this.reset( true );
-			}
-			else if( this.running ){
-				if( this.transportTryNumber++ > this.transportTryCount ){
-					this.running = false;
-					this.transportTryNumber = 0;
-				}
-			}
-		}
-		this.transportRunning = transportRunning;
 	}
 	
 	private class JackTimer implements Runnable{

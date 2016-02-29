@@ -1,19 +1,13 @@
 package org.herac.tuxguitar.cocoa.modifiedmarker;
 
-import org.herac.tuxguitar.gui.system.plugins.TGPluginException;
-import org.herac.tuxguitar.gui.system.plugins.base.TGPluginAdapter;
+import org.herac.tuxguitar.cocoa.TGCocoaIntegrationPlugin;
+import org.herac.tuxguitar.util.TGContext;
+import org.herac.tuxguitar.util.plugin.TGPlugin;
+import org.herac.tuxguitar.util.plugin.TGPluginException;
 
-public class ModifiedMarkerPlugin extends TGPluginAdapter {
+public class ModifiedMarkerPlugin implements TGPlugin {
 	
 	private ModifiedMarker modifiedMarker;
-	
-	public void init() throws TGPluginException {
-		// Nothing todo
-	}
-	
-	public void close() throws TGPluginException {
-		// Nothing todo
-	}
 	
 	public void setEnabled(boolean enabled) throws TGPluginException {
 		try {
@@ -27,5 +21,17 @@ public class ModifiedMarkerPlugin extends TGPluginAdapter {
 		} catch( Throwable throwable ){
 			throw new TGPluginException( throwable );
 		}
+	}
+	
+	public String getModuleId() {
+		return TGCocoaIntegrationPlugin.MODULE_ID;
+	}
+	
+	public void connect(TGContext context) throws TGPluginException {
+		this.setEnabled(true);
+	}
+
+	public void disconnect(TGContext context) throws TGPluginException {
+		this.setEnabled(false);
 	}
 }

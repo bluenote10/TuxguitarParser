@@ -11,37 +11,29 @@ import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
+import org.herac.tuxguitar.app.TuxGuitar;
+import org.herac.tuxguitar.app.util.DialogUtils;
+import org.herac.tuxguitar.app.util.TGMessageDialogUtil;
 import org.herac.tuxguitar.community.TGCommunitySingleton;
 import org.herac.tuxguitar.community.auth.TGCommunityAuthDialog;
-import org.herac.tuxguitar.gui.TuxGuitar;
-import org.herac.tuxguitar.gui.util.DialogUtils;
-import org.herac.tuxguitar.gui.util.MessageDialog;
-import org.herac.tuxguitar.util.TGSynchronizer;
+import org.herac.tuxguitar.util.TGContext;
 
 public class TGShareFileDialog {
 	
-	private boolean accepted;
+	private TGContext context;
 	private TGShareFile file;
 	private String errors;
+	private boolean accepted;
 	
-	public TGShareFileDialog(TGShareFile file , String errors ){
+	public TGShareFileDialog(TGContext context, TGShareFile file , String errors ){
+		this.context = context;
 		this.file = file;
 		this.errors = errors;
 		this.accepted = false;
 	}
 	
 	public void open() {
-		try {
-			TGSynchronizer.instance().addRunnable(new TGSynchronizer.TGRunnable() {
-				public void run() throws Throwable {
-					if( !TuxGuitar.isDisposed() ){
-						open( TuxGuitar.instance().getShell() );
-					}
-				}
-			});
-		}catch(Throwable throwable){
-			throwable.printStackTrace();
-		}
+		this.open( TuxGuitar.getInstance().getShell() );
 	}
 	
 	protected void open(Shell shell) {
@@ -51,7 +43,7 @@ public class TGShareFileDialog {
 		
 		dialog.setLayout(new GridLayout());
 		dialog.setLayoutData(new GridData(SWT.FILL,SWT.FILL,true,true));
-		dialog.setImage(TuxGuitar.instance().getIconManager().getAppIcon());
+		dialog.setImage(TuxGuitar.getInstance().getIconManager().getAppIcon());
 		dialog.setText(TuxGuitar.getProperty("tuxguitar-community.share-dialog.title"));
 		
 		Group group = new Group(dialog,SWT.SHADOW_ETCHED_IN);
@@ -66,17 +58,17 @@ public class TGShareFileDialog {
 		
 		final Text usernameText = new Text(group, SWT.BORDER | SWT.READ_ONLY );
 		usernameText.setLayoutData(makeUsernameTextData());
-		usernameText.setText( TGCommunitySingleton.getInstance().getAuth().getUsername() );
+		usernameText.setText( TGCommunitySingleton.getInstance(getContext()).getAuth().getUsername() );
 		
 		final Button usernameChooser = new Button(group, SWT.PUSH );
 		usernameChooser.setText("...");
 		usernameChooser.addSelectionListener( new SelectionAdapter() {
 			public void widgetSelected(SelectionEvent e) {
-				TGCommunityAuthDialog authDialog = new TGCommunityAuthDialog();
+				TGCommunityAuthDialog authDialog = new TGCommunityAuthDialog(getContext());
 				authDialog.open( dialog );
 				if( authDialog.isAccepted() ){
-					TGCommunitySingleton.getInstance().getAuth().update();
-					usernameText.setText( TGCommunitySingleton.getInstance().getAuth().getUsername() );
+					TGCommunitySingleton.getInstance(getContext()).getAuth().update();
+					usernameText.setText( TGCommunitySingleton.getInstance(getContext()).getAuth().getUsername() );
 				}
 			}
 		} );
@@ -136,7 +128,7 @@ public class TGShareFileDialog {
 		dialog.setDefaultButton( buttonOK );
 		
 		if( this.errors != null ){
-			MessageDialog.errorMessage(dialog, this.errors);
+			TGMessageDialogUtil.errorMessage(this.context, dialog, this.errors);
 		}
 		DialogUtils.openDialog(dialog,DialogUtils.OPEN_STYLE_CENTER | DialogUtils.OPEN_STYLE_PACK | DialogUtils.OPEN_STYLE_WAIT);
 	}
@@ -191,5 +183,9 @@ public class TGShareFileDialog {
 	
 	public boolean isAccepted(){
 		return this.accepted;
+	}
+	
+	public TGContext getContext() {
+		return context;
 	}
 }

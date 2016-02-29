@@ -16,10 +16,12 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Link;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
+import org.herac.tuxguitar.app.TuxGuitar;
+import org.herac.tuxguitar.app.util.DialogUtils;
 import org.herac.tuxguitar.community.TGCommunitySingleton;
 import org.herac.tuxguitar.community.utils.TGCommunityWeb;
-import org.herac.tuxguitar.gui.TuxGuitar;
-import org.herac.tuxguitar.gui.util.DialogUtils;
+import org.herac.tuxguitar.util.TGContext;
+import org.herac.tuxguitar.util.TGException;
 import org.herac.tuxguitar.util.TGSynchronizer;
 
 public class TGCommunityStartupScreen {
@@ -27,15 +29,17 @@ public class TGCommunityStartupScreen {
 	private static final int MAIN_WIDTH  = 550;
 	private static final int MAIN_HEIGHT = SWT.DEFAULT;
 	
-	public TGCommunityStartupScreen(){
-		super();
+	private TGContext context;
+	
+	public TGCommunityStartupScreen(TGContext context){
+		this.context = context;
 	}
 	
 	public void open(){
 		try {
-			final Shell parent = TuxGuitar.instance().getShell();
-			TGSynchronizer.instance().runLater( new TGSynchronizer.TGRunnable() {
-				public void run() throws Throwable {
+			final Shell parent = TuxGuitar.getInstance().getShell();
+			TGSynchronizer.getInstance(this.context).executeLater( new Runnable() {
+				public void run() throws TGException {
 					open( parent );
 				}
 			} );
@@ -45,10 +49,10 @@ public class TGCommunityStartupScreen {
 	}
 	
 	protected void open(Shell parent){
-		final Shell dialog = DialogUtils.newDialog(TuxGuitar.instance().getShell(), SWT.DIALOG_TRIM );
+		final Shell dialog = DialogUtils.newDialog(TuxGuitar.getInstance().getShell(), SWT.DIALOG_TRIM );
 		dialog.setLayout(new GridLayout());
 		dialog.setLayoutData(new GridData(SWT.FILL,SWT.FILL,true,true));
-		dialog.setImage(TuxGuitar.instance().getIconManager().getAppIcon());
+		dialog.setImage(TuxGuitar.getInstance().getIconManager().getAppIcon());
 		dialog.setText(TuxGuitar.getProperty("tuxguitar-community.welcome-dialog.title"));
 		
 		Composite composite = new Composite( dialog, SWT.NONE );
@@ -65,7 +69,7 @@ public class TGCommunityStartupScreen {
 		topLeft.setLayoutData(new GridData(SWT.LEFT,SWT.TOP,false,false));
 		
 		Label image = new Label( topLeft, SWT.NONE );
-		image.setImage( TuxGuitar.instance().getIconManager().getAppIcon() );
+		image.setImage( TuxGuitar.getInstance().getIconManager().getAppIcon() );
 		
 		Composite topRight = new Composite( top , SWT.NONE );
 		topRight.setLayout( new GridLayout(2,false) );
@@ -152,8 +156,8 @@ public class TGCommunityStartupScreen {
 				final String href = event.text;
 				if( href != null ){
 					new Thread( new Runnable() {
-						public void run() {
-							TGCommunityWeb.open( href );
+						public void run() throws TGException {
+							TGCommunityWeb.open(getContext(), href);
 						}
 					} ).start();
 				}
@@ -162,10 +166,14 @@ public class TGCommunityStartupScreen {
 	}
 	
 	public void setDisabled( boolean enabled ){
-		TGCommunitySingleton.getInstance().getConfig().setProperty("community.welcome.disabled",enabled);
+		TGCommunitySingleton.getInstance(this.context).getConfig().setValue("community.welcome.disabled",enabled);
 	}
 	
 	public boolean isDisabled(){
-		return TGCommunitySingleton.getInstance().getConfig().getBooleanConfigValue("community.welcome.disabled");
+		return TGCommunitySingleton.getInstance(this.context).getConfig().getBooleanValue("community.welcome.disabled");
+	}
+	
+	public TGContext getContext() {
+		return context;
 	}
 }

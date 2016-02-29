@@ -1,23 +1,27 @@
 package org.herac.tuxguitar.jack.synthesizer;
 
-import org.herac.tuxguitar.gui.system.plugins.base.TGMidiOutputPortProviderPlugin;
-import org.herac.tuxguitar.jack.JackClient;
-import org.herac.tuxguitar.jack.settings.JackSettings;
+import org.herac.tuxguitar.jack.JackPlugin;
+import org.herac.tuxguitar.jack.singleton.JackClientInstanceProvider;
 import org.herac.tuxguitar.player.base.MidiOutputPortProvider;
+import org.herac.tuxguitar.player.plugin.TGMidiOutputPortProviderPlugin;
+import org.herac.tuxguitar.util.TGContext;
 
 public class JackOutputPortProviderPlugin extends TGMidiOutputPortProviderPlugin {
 	
 	private JackOutputPortProvider jackOutputPortProvider;
 	
 	public JackOutputPortProviderPlugin(){
-		this(new JackClient(),new JackSettings());
+		super();
 	}
 	
-	public JackOutputPortProviderPlugin(JackClient jackClient,JackSettings jackSettings){
-		this.jackOutputPortProvider = new JackOutputPortProvider( jackClient , jackSettings);
-	}
-	
-	protected MidiOutputPortProvider getProvider() {
+	protected MidiOutputPortProvider createProvider(TGContext context) {
+		if( this.jackOutputPortProvider == null ) {
+			this.jackOutputPortProvider = new JackOutputPortProvider(context, new JackClientInstanceProvider(context) );
+		}
 		return this.jackOutputPortProvider;
+	}
+	
+	public String getModuleId() {
+		return JackPlugin.MODULE_ID;
 	}
 }

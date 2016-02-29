@@ -1,9 +1,3 @@
-/*
- * Created on 16-dic-2005
- *
- * TODO To change the template for this generated file go to
- * Window - Preferences - Java - Code Style - Code Templates
- */
 package org.herac.tuxguitar.io.tg.v11;
 
 import java.io.DataOutputStream;
@@ -11,14 +5,20 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Iterator;
 
-import org.herac.tuxguitar.io.base.TGFileFormat;
+import org.herac.tuxguitar.document.TGDocumentContextAttributes;
+import org.herac.tuxguitar.gm.GMChannelRoute;
+import org.herac.tuxguitar.gm.GMChannelRouter;
+import org.herac.tuxguitar.gm.GMChannelRouterConfigurator;
 import org.herac.tuxguitar.io.base.TGFileFormatException;
-import org.herac.tuxguitar.io.base.TGLocalFileExporter;
+import org.herac.tuxguitar.io.base.TGSongStream;
+import org.herac.tuxguitar.io.base.TGSongStreamContext;
 import org.herac.tuxguitar.song.factory.TGFactory;
+import org.herac.tuxguitar.song.managers.TGSongManager;
 import org.herac.tuxguitar.song.models.TGBeat;
 import org.herac.tuxguitar.song.models.TGChannel;
 import org.herac.tuxguitar.song.models.TGChord;
 import org.herac.tuxguitar.song.models.TGColor;
+import org.herac.tuxguitar.song.models.TGDivisionType;
 import org.herac.tuxguitar.song.models.TGDuration;
 import org.herac.tuxguitar.song.models.TGLyric;
 import org.herac.tuxguitar.song.models.TGMarker;
@@ -33,7 +33,6 @@ import org.herac.tuxguitar.song.models.TGTempo;
 import org.herac.tuxguitar.song.models.TGText;
 import org.herac.tuxguitar.song.models.TGTimeSignature;
 import org.herac.tuxguitar.song.models.TGTrack;
-import org.herac.tuxguitar.song.models.TGDivisionType;
 import org.herac.tuxguitar.song.models.TGVoice;
 import org.herac.tuxguitar.song.models.effects.TGEffectBend;
 import org.herac.tuxguitar.song.models.effects.TGEffectGrace;
@@ -41,38 +40,27 @@ import org.herac.tuxguitar.song.models.effects.TGEffectHarmonic;
 import org.herac.tuxguitar.song.models.effects.TGEffectTremoloBar;
 import org.herac.tuxguitar.song.models.effects.TGEffectTremoloPicking;
 import org.herac.tuxguitar.song.models.effects.TGEffectTrill;
-/**
- * @author julian
- *
- * TODO To change the template for this generated type comment go to
- * Window - Preferences - Java - Code Style - Code Templates
- */
-public class TGOutputStream extends TGStream implements TGLocalFileExporter{
+
+public class TGOutputStream extends TGStream implements TGSongStream {
 	
+	private TGSongStreamContext context;
+	private TGFactory factory;
+	private GMChannelRouter channelRouter;
 	private DataOutputStream dataOutputStream;
 	
-	public boolean isSupportedExtension(String extension) {
-		return (extension.toLowerCase().equals(TG_FORMAT_EXTENSION));
+	public TGOutputStream(TGSongStreamContext context) {
+		this.context = context;
 	}
 	
-	public String getExportName(){
-		return "TuxGuitar 1.1";
-	}
-	
-	public TGFileFormat getFileFormat(){
-		return new TGFileFormat("TuxGuitar","*.tg");
-	}
-	
-	public boolean configure(boolean setDefaults){
-		return true;
-	}
-	
-	public void init(TGFactory factory,OutputStream stream){
-		this.dataOutputStream = new DataOutputStream(stream);
-	}
-	
-	public void exportSong(TGSong song) throws TGFileFormatException {
+	public void process() throws TGFileFormatException {		
 		try{
+			TGSongManager songManager = this.context.getAttribute(TGDocumentContextAttributes.ATTRIBUTE_SONG_MANAGER);
+			TGSong song = this.context.getAttribute(TGDocumentContextAttributes.ATTRIBUTE_SONG);
+			
+			this.factory = songManager.getFactory();
+			this.dataOutputStream = new DataOutputStream((OutputStream) this.context.getAttribute(OutputStream.class.getName()));
+			
+			this.configureChannelRouter(song);
 			this.writeVersion();
 			this.write(song);
 			this.dataOutputStream.flush();
@@ -104,7 +92,7 @@ public class TGOutputStream extends TGStream implements TGLocalFileExporter{
 		
 		//escribo las pistas
 		TGMeasureHeader lastHeader = null;
-		Iterator headers = song.getMeasureHeaders();
+		Iterator<TGMeasureHeader> headers = song.getMeasureHeaders();
 		while(headers.hasNext()){
 			TGMeasureHeader header = (TGMeasureHeader)headers.next();
 			writeMeasureHeader(header,lastHeader);
@@ -139,11 +127,11 @@ public class TGOutputStream extends TGStream implements TGLocalFileExporter{
 		writeUnsignedByteString(track.getName());
 		
 		//escribo el canal
-		writeChannel(track.getChannel());
+		writeChannel(getChannel(track.getSong(), track));
 		
 		//escribo los compases
 		TGMeasure lastMeasure = null;
-		Iterator measures  = track.getMeasures();
+		Iterator<TGMeasure> measures  = track.getMeasures();
 		while(measures.hasNext()){
 			TGMeasure measure = (TGMeasure)measures.next();
 			writeMeasure(measure,lastMeasure);
@@ -154,7 +142,7 @@ public class TGOutputStream extends TGStream implements TGLocalFileExporter{
 		writeByte(track.getStrings().size());
 		
 		//escribo las cuerdas
-		Iterator stringIt  = track.getStrings().iterator();
+		Iterator<TGString> stringIt  = track.getStrings().iterator();
 		while(stringIt.hasNext()){
 			TGString string = (TGString)stringIt.next();
 			writeInstrumentString(string);
@@ -270,14 +258,16 @@ public class TGOutputStream extends TGStream implements TGLocalFileExporter{
 	}
 	
 	private void writeChannel(TGChannel channel){
+		GMChannelRoute gmChannelRoute = getChannelRoute(channel.getChannelId());
+		
 		//escribo el canal
-		writeByte(channel.getChannel());
+		writeByte(gmChannelRoute.getChannel1());
 		
 		//escribo el canal de efectos
-		writeByte(channel.getEffectChannel());
+		writeByte(gmChannelRoute.getChannel2());
 		
 		//escribo el instrumento
-		writeByte(channel.getInstrument());
+		writeByte(channel.getProgram());
 		
 		//escribo el volumen
 		writeByte(channel.getVolume());
@@ -559,7 +549,7 @@ public class TGOutputStream extends TGStream implements TGLocalFileExporter{
 		//escribo la cantidad de puntos
 		writeByte(effect.getPoints().size());
 		
-		Iterator it = effect.getPoints().iterator();
+		Iterator<TGEffectBend.BendPoint> it = effect.getPoints().iterator();
 		while(it.hasNext()){
 			TGEffectBend.BendPoint point = (TGEffectBend.BendPoint)it.next();
 			
@@ -575,7 +565,7 @@ public class TGOutputStream extends TGStream implements TGLocalFileExporter{
 		//escribo la cantidad de puntos
 		writeByte(effect.getPoints().size());
 		
-		Iterator it = effect.getPoints().iterator();
+		Iterator<TGEffectTremoloBar.TremoloBarPoint> it = effect.getPoints().iterator();
 		while(it.hasNext()){
 			TGEffectTremoloBar.TremoloBarPoint point = (TGEffectTremoloBar.TremoloBarPoint)it.next();
 			
@@ -701,5 +691,33 @@ public class TGOutputStream extends TGStream implements TGLocalFileExporter{
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	private TGChannel getChannel( TGSong song, TGTrack track ){
+		TGSongManager tgSongManager = new TGSongManager(this.factory);
+		TGChannel tgChannel = tgSongManager.getChannel(song, track.getChannelId() );
+		if( tgChannel == null ){
+			tgChannel = this.factory.newChannel();
+		}
+		
+		return tgChannel;
+	}
+	
+	private GMChannelRoute getChannelRoute( int channelId ){
+		GMChannelRoute gmChannelRoute = this.channelRouter.getRoute(channelId);
+		if( gmChannelRoute == null ){
+			gmChannelRoute = new GMChannelRoute(GMChannelRoute.NULL_VALUE);
+			gmChannelRoute.setChannel1(15);
+			gmChannelRoute.setChannel2(15);
+		}
+		
+		return gmChannelRoute;
+	}
+	
+	private void configureChannelRouter( TGSong song ){
+		this.channelRouter = new GMChannelRouter();
+		
+		GMChannelRouterConfigurator gmChannelRouterConfigurator = new GMChannelRouterConfigurator(this.channelRouter);
+		gmChannelRouterConfigurator.configureRouter(song.getChannels());
 	}
 }

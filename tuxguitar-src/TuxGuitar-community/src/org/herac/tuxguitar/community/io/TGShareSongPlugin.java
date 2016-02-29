@@ -1,12 +1,18 @@
 package org.herac.tuxguitar.community.io;
 
-import org.herac.tuxguitar.gui.system.plugins.TGPluginException;
-import org.herac.tuxguitar.gui.system.plugins.base.TGExporterPlugin;
+import org.herac.tuxguitar.community.TGCommunityPlugin;
 import org.herac.tuxguitar.io.base.TGRawExporter;
+import org.herac.tuxguitar.io.plugin.TGExporterPlugin;
+import org.herac.tuxguitar.util.TGContext;
+import org.herac.tuxguitar.util.plugin.TGPluginException;
 
 public class TGShareSongPlugin extends TGExporterPlugin {
 	
-	protected TGRawExporter getExporter() throws TGPluginException {
-		return new TGShareSongExporter();
+	protected TGRawExporter createExporter(TGContext context) throws TGPluginException {
+		return new TGShareSongExporter(context);
+	}
+	
+	public String getModuleId(){
+		return TGCommunityPlugin.MODULE_ID;
 	}
 }

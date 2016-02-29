@@ -7,11 +7,14 @@ import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Tray;
 import org.eclipse.swt.widgets.TrayItem;
-import org.herac.tuxguitar.gui.TuxGuitar;
-import org.herac.tuxguitar.gui.system.icons.IconLoader;
-import org.herac.tuxguitar.gui.system.language.LanguageLoader;
+import org.herac.tuxguitar.app.TuxGuitar;
+import org.herac.tuxguitar.app.system.icons.TGIconEvent;
+import org.herac.tuxguitar.app.system.language.TGLanguageEvent;
+import org.herac.tuxguitar.event.TGEvent;
+import org.herac.tuxguitar.event.TGEventListener;
+import org.herac.tuxguitar.util.TGContext;
 
-public class TGTray implements IconLoader,LanguageLoader{
+public class TGTray implements TGEventListener {
 	
 	private boolean visible;
 	private Display display;
@@ -19,13 +22,13 @@ public class TGTray implements IconLoader,LanguageLoader{
 	private TGTrayIcon icon;
 	private TGTrayMenu menu;
 	
-	public TGTray(){
-		this.display = TuxGuitar.instance().getDisplay();
+	public TGTray(TGContext context){
+		this.display = TuxGuitar.getInstance().getDisplay();
 		this.tray = this.display.getSystemTray();
 		this.icon = new TGTrayIcon();
-		this.menu = new TGTrayMenu();
-		TuxGuitar.instance().getIconManager().addLoader(this);
-		TuxGuitar.instance().getLanguageManager().addLoader(this);
+		this.menu = new TGTrayMenu(context);
+		TuxGuitar.getInstance().getIconManager().addLoader(this);
+		TuxGuitar.getInstance().getLanguageManager().addLoader(this);
 	}
 	
 	public void removeTray(){
@@ -35,7 +38,6 @@ public class TGTray implements IconLoader,LanguageLoader{
 			for(int i = 0; i < items.length; i ++){
 				items[i].dispose();
 			}
-			this.icon.dispose();
 			this.menu.dispose();
 		}
 	}
@@ -86,5 +88,14 @@ public class TGTray implements IconLoader,LanguageLoader{
 	
 	protected void showMenu(){
 		this.menu.show();
+	}
+
+	public void processEvent(TGEvent event) {
+		if( TGIconEvent.EVENT_TYPE.equals(event.getEventType()) ) {
+			this.loadIcons();
+		}
+		else if( TGLanguageEvent.EVENT_TYPE.equals(event.getEventType()) ) {
+			this.loadProperties();
+		}
 	}
 }

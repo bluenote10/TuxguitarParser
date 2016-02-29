@@ -9,19 +9,20 @@ import java.util.Map;
 
 import org.herac.tuxguitar.community.auth.TGCommunityAuth;
 import org.herac.tuxguitar.community.utils.TGCommunityWeb;
+import org.herac.tuxguitar.util.TGContext;
 
 public class TGBrowserRequest {
 	
-	private static final String REMOTE_URL = (TGCommunityWeb.HOME_URL + "/rd.php/sharing/tuxguitar/browser.do");
-	
+	private TGContext context;
 	private String request;
 	
-	public TGBrowserRequest(TGCommunityAuth auth, TGBrowserElementImpl element) throws Throwable {
+	public TGBrowserRequest(TGContext context, TGCommunityAuth auth, TGBrowserElementImpl element) throws Throwable {
+		this.context = context;
 		this.initialize(auth, element);
 	}
 	
-	public TGBrowserRequest(TGCommunityAuth auth) throws Throwable {
-		this(auth , null);
+	public TGBrowserRequest(TGContext context, TGCommunityAuth auth) throws Throwable {
+		this(context, auth , null);
 	}
 	
 	private void initialize( TGCommunityAuth auth, TGBrowserElementImpl element ) throws Throwable {
@@ -31,9 +32,9 @@ public class TGBrowserRequest {
 		this.request += URLEncoder.encode( auth.getAuthCode() , "UTF-8" );
 		
 		if( element != null ){
-			Iterator it = element.getProperties();
+			Iterator<Map.Entry<String, String>> it = element.getProperties();
 			while( it.hasNext() ){
-				Map.Entry property = (Map.Entry) it.next();
+				Map.Entry<String, String> property = it.next();
 				this.request += ("&");
 				this.request += URLEncoder.encode( (String)property.getKey() , "UTF-8" );
 				this.request += ("=");
@@ -43,7 +44,7 @@ public class TGBrowserRequest {
 	}
 	
 	public TGBrowserResponse getResponse() throws Throwable {
-		URL url = new URL(REMOTE_URL);
+		URL url = new URL((TGCommunityWeb.getHomeUrl(this.context) + "/rd.php/sharing/tuxguitar/browser.do"));
 		URLConnection conn = url.openConnection();
 		conn.setDoOutput(true);
 		

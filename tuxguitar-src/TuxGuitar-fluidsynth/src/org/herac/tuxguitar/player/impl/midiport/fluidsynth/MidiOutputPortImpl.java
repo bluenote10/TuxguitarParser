@@ -2,10 +2,10 @@ package org.herac.tuxguitar.player.impl.midiport.fluidsynth;
 
 import java.io.File;
 
-import org.herac.tuxguitar.player.base.MidiOutputPort;
-import org.herac.tuxguitar.player.base.MidiReceiver;
+import org.herac.tuxguitar.gm.port.GMOutputPort;
+import org.herac.tuxguitar.gm.port.GMReceiver;
 
-public class MidiOutputPortImpl implements MidiOutputPort{
+public class MidiOutputPortImpl extends GMOutputPort{
 	
 	private String key;
 	private String name;
@@ -13,7 +13,7 @@ public class MidiOutputPortImpl implements MidiOutputPort{
 	private MidiReceiverImpl receiver;
 	private String soundFont;
 	
-	public MidiOutputPortImpl(MidiSynth synth,File soundfont){
+	public MidiOutputPortImpl(MidiSynth synth, File soundfont){
 		this.key = getUniqueKey(soundfont);
 		this.name = getUniqueName(soundfont);
 		this.soundFont = soundfont.getAbsolutePath();
@@ -33,7 +33,7 @@ public class MidiOutputPortImpl implements MidiOutputPort{
 		}
 	}
 	
-	public MidiReceiver getReceiver(){
+	public GMReceiver getReceiver(){
 		this.open();
 		return this.receiver;
 	}

@@ -1,51 +1,84 @@
 package org.herac.tuxguitar.community.browser;
 
-import java.util.ArrayList;
+import java.io.InputStream;
 import java.util.List;
 
-import org.herac.tuxguitar.gui.tools.browser.TGBrowserException;
-import org.herac.tuxguitar.gui.tools.browser.base.TGBrowser;
-import org.herac.tuxguitar.gui.tools.browser.base.TGBrowserElement;
+import org.herac.tuxguitar.app.tools.browser.base.TGBrowser;
+import org.herac.tuxguitar.app.tools.browser.base.TGBrowserCallBack;
+import org.herac.tuxguitar.app.tools.browser.base.TGBrowserElement;
+import org.herac.tuxguitar.util.TGContext;
 
-public class TGBrowserImpl extends TGBrowser {
+public class TGBrowserImpl implements TGBrowser {
 	
 	private TGBrowserConnection connection;
 	private TGBrowserElementImpl element;
 	
-	public TGBrowserImpl(TGBrowserDataImpl data){
+	public TGBrowserImpl(TGContext context){
 		this.element = null;
-		this.connection = new TGBrowserConnection();
+		this.connection = new TGBrowserConnection(context);
 	}
 	
-	public void open() throws TGBrowserException {
-		// TODO Auto-generated method stub
-	}
-	
-	public void close() throws TGBrowserException {
-		// TODO Auto-generated method stub
-	}
-	
-	public void cdRoot() throws TGBrowserException {
-		this.element = null;
-	}
-	
-	public void cdUp() throws TGBrowserException {
-		if( this.element != null ){
-			this.element = this.element.getParent();
+	public void open(TGBrowserCallBack<Object> cb) {
+		try {
+			cb.onSuccess(null);
+		} catch(Throwable throwable) {
+			cb.handleError(throwable);
 		}
 	}
 	
-	public void cdElement(TGBrowserElement element) throws TGBrowserException {
-		if( element instanceof TGBrowserElementImpl ){
-			TGBrowserElementImpl nextElement = (TGBrowserElementImpl)element;
-			nextElement.setParent( this.element );
-			this.element = nextElement;
+	public void close(TGBrowserCallBack<Object> cb) {
+		try {
+			cb.onSuccess(null);
+		} catch(Throwable throwable) {
+			cb.handleError(throwable);
 		}
 	}
 	
-	public List listElements() throws TGBrowserException {
-		List elements = new ArrayList();
-		this.connection.getElements(elements , this.element );
-		return elements;
+	public void cdRoot(TGBrowserCallBack<Object> cb) {
+		try {
+			this.element = null;
+			
+			cb.onSuccess(this.element);
+		} catch(Throwable throwable) {
+			cb.handleError(throwable);
+		}
+	}
+	
+	public void cdUp(TGBrowserCallBack<Object> cb) {
+		try {
+			if( this.element != null ){
+				this.element = this.element.getParent();
+			}
+			
+			cb.onSuccess(this.element);
+		} catch(Throwable throwable) {
+			cb.handleError(throwable);
+		}
+	}
+	
+	public void cdElement(TGBrowserCallBack<Object> cb, TGBrowserElement element) {
+		try {
+			if( element instanceof TGBrowserElementImpl ){
+				TGBrowserElementImpl nextElement = (TGBrowserElementImpl)element;
+				nextElement.setParent( this.element );
+				this.element = nextElement;
+			}
+			
+			cb.onSuccess(this.element);
+		} catch(Throwable throwable) {
+			cb.handleError(throwable);
+		}
+	}
+	
+	public void listElements(TGBrowserCallBack<List<TGBrowserElement>> cb) {
+		this.connection.fillElements(cb, this.element);
+	}
+	
+	public void getInputStream(TGBrowserCallBack<InputStream> cb, TGBrowserElement element) {
+		try {
+			cb.onSuccess(((TGBrowserElementImpl) element).getInputStream());
+		} catch (Throwable e) {
+			cb.handleError(e);
+		}
 	}
 }

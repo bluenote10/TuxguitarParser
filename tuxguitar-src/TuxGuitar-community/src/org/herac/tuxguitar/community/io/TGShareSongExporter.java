@@ -1,26 +1,27 @@
 package org.herac.tuxguitar.community.io;
 
-import org.herac.tuxguitar.io.base.TGFileFormatException;
 import org.herac.tuxguitar.io.base.TGRawExporter;
-import org.herac.tuxguitar.song.factory.TGFactory;
-import org.herac.tuxguitar.song.models.TGSong;
+import org.herac.tuxguitar.io.base.TGSongStream;
+import org.herac.tuxguitar.io.base.TGSongStreamContext;
+import org.herac.tuxguitar.util.TGContext;
 
 public class TGShareSongExporter implements TGRawExporter { 
 	
-	public TGShareSongExporter(){
-		super();
+	private TGContext context;
+	
+	public TGShareSongExporter(TGContext context){
+		this.context = context;
 	}
 	
-	public void exportSong(TGSong srcSong) throws TGFileFormatException {
-		final TGSong song = srcSong.clone(new TGFactory());
-		new Thread( new Runnable() {
-			public void run() {
-				new TGShareSong().process( song );
-			}
-		} ).start();
+	public String getProviderId() {
+		return this.getClass().getName();
 	}
 	
 	public String getExportName() {
 		return ("Share with the Community");
+	}
+
+	public TGSongStream openStream(TGSongStreamContext streamContext) {
+		return new TGShareSongStream(this.context, streamContext);
 	}
 }

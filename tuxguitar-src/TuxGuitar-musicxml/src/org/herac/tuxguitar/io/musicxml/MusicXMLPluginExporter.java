@@ -1,27 +1,18 @@
 package org.herac.tuxguitar.io.musicxml;
 
-import org.herac.tuxguitar.gui.system.plugins.base.TGExporterPlugin;
 import org.herac.tuxguitar.io.base.TGRawExporter;
+import org.herac.tuxguitar.io.plugin.TGExporterPlugin;
+import org.herac.tuxguitar.util.TGContext;
 
 public class MusicXMLPluginExporter extends TGExporterPlugin{
 	
-	protected TGRawExporter getExporter() {
+	public static final String MODULE_ID = "tuxguitar-musicxml";
+	
+	protected TGRawExporter createExporter(TGContext context) {
 		return new MusicXMLSongExporter();
 	}
 	
-	public String getAuthor() {
-		return "Julian Casadesus <julian@casadesus.com.ar>";
-	}
-	
-	public String getDescription() {
-		return "MusicXML exporter plugin";
-	}
-	
-	public String getName() {
-		return "MusicXML exporter";
-	}
-	
-	public String getVersion() {
-		return "1.0";
+	public String getModuleId(){
+		return MODULE_ID;
 	}
 }

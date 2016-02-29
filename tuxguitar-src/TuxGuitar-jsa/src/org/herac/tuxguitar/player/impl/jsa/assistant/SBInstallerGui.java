@@ -17,27 +17,31 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.ProgressBar;
 import org.eclipse.swt.widgets.Shell;
-import org.herac.tuxguitar.gui.TuxGuitar;
-import org.herac.tuxguitar.gui.util.DialogUtils;
-import org.herac.tuxguitar.gui.util.MessageDialog;
-import org.herac.tuxguitar.gui.util.TGFileUtils;
+import org.herac.tuxguitar.app.TuxGuitar;
+import org.herac.tuxguitar.app.util.DialogUtils;
+import org.herac.tuxguitar.app.util.TGFileUtils;
 import org.herac.tuxguitar.player.impl.jsa.midiport.MidiPortSynthesizer;
+import org.herac.tuxguitar.util.TGContext;
+import org.herac.tuxguitar.util.TGException;
 import org.herac.tuxguitar.util.TGSynchronizer;
+import org.herac.tuxguitar.util.error.TGErrorManager;
 
 public class SBInstallerGui implements SBInstallerlistener{
 
 	private static final String SB_PATH = ( TGFileUtils.PATH_USER_PLUGINS_CONFIG + File.separator + "tuxguitar-jsa" );
 	
+	private TGContext context;
 	private Shell dialog;
 	private Label progressLabel;
 
 	private SBInstaller installer;	
 	
-	public SBInstallerGui(URL url,MidiPortSynthesizer synthesizer){
-		initInstaller(url,synthesizer);
+	public SBInstallerGui(TGContext context, URL url, MidiPortSynthesizer synthesizer){
+		this.context = context;
+		this.initInstaller(url, synthesizer);
 	}
 	
-	public void initInstaller(URL url,MidiPortSynthesizer synthesizer){
+	public void initInstaller(URL url, MidiPortSynthesizer synthesizer){
 		File tmpPath = new File(SB_PATH);
 		File dstPath = new File(SB_PATH);
 		
@@ -47,11 +51,11 @@ public class SBInstallerGui implements SBInstallerlistener{
 		if(!dstPath.exists()){
 			dstPath.mkdirs();
 		}
-		this.installer = new SBInstaller(url,tmpPath,dstPath,synthesizer,this);
+		this.installer = new SBInstaller(this.context, url, tmpPath, dstPath, synthesizer, this);
 	}
 	
 	public void open(){
-		this.dialog = DialogUtils.newDialog(TuxGuitar.instance().getShell(), SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
+		this.dialog = DialogUtils.newDialog(TuxGuitar.getInstance().getShell(), SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
 		this.dialog.setLayout(new GridLayout());
 
 		//-----------------------------------------------------
@@ -60,7 +64,7 @@ public class SBInstallerGui implements SBInstallerlistener{
 		header.setLayoutData(new GridData(SWT.FILL,SWT.TOP,true,false));		
         
 		Label headerImage = new Label(header, SWT.NONE);
-		headerImage.setImage(TuxGuitar.instance().getDisplay().getSystemImage(SWT.ICON_INFORMATION));
+		headerImage.setImage(TuxGuitar.getInstance().getDisplay().getSystemImage(SWT.ICON_INFORMATION));
 		headerImage.setLayoutData(new GridData(SWT.LEFT,SWT.TOP,false,false));
 		
 		Label headerTip = new Label(header, SWT.WRAP);
@@ -117,7 +121,7 @@ public class SBInstallerGui implements SBInstallerlistener{
 
 	private void process(){
 		new Thread(new Runnable() {
-			public void run() {				
+			public void run() throws TGException {				
 				if(!isDisposed()){
 					getInstaller().process();
 				}
@@ -127,50 +131,39 @@ public class SBInstallerGui implements SBInstallerlistener{
 	
 	public void notifyProcess(final String process){
 		if(!isDisposed()){
-			try {
-				TGSynchronizer.instance().addRunnable(new TGSynchronizer.TGRunnable() {
-					public void run() {
-						if(!isDisposed()){
-							getProgressLabel().setText(process);
-						}
+			TGSynchronizer.getInstance(this.context).executeLater(new Runnable() {
+				public void run() {
+					if(!isDisposed()){
+						getProgressLabel().setText(process);
 					}
-				});
-			} catch (Throwable e) {
-				e.printStackTrace();
-			}
+				}
+			});
 		}
 	}
 
 	public void notifyFinish(){
 		if(!isDisposed()){
-			try {
-				TGSynchronizer.instance().addRunnable(new TGSynchronizer.TGRunnable() {
-					public void run() {
-						if(!isDisposed()){
-							getDialog().dispose();
-						}
+			TGSynchronizer.getInstance(this.context).executeLater(new Runnable() {
+				public void run() {
+					if(!isDisposed()){
+						getDialog().dispose();
 					}
-				});
-			} catch (Throwable e) {
-				e.printStackTrace();
-			}
+				}
+			});
 		}
 	}
 	
 	public void notifyFailed(final Throwable throwable){
 		if(!isDisposed()){
-			try {
-				TGSynchronizer.instance().addRunnable(new TGSynchronizer.TGRunnable() {
-					public void run() {
-						if(!isDisposed()){
-							getDialog().dispose();
-							MessageDialog.errorMessage( throwable );
-						}
+			TGSynchronizer.getInstance(this.context).executeLater(new Runnable() {
+				public void run() {
+					if(!isDisposed()){
+						getDialog().dispose();
+						
+						TGErrorManager.getInstance(SBInstallerGui.this.context).handleError(throwable);
 					}
-				});
-			} catch (Throwable e) {
-				e.printStackTrace();
-			}
+				}
+			});
 		}
 	}	
 

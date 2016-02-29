@@ -13,11 +13,15 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import org.herac.tuxguitar.gm.GMChannelRoute;
+import org.herac.tuxguitar.gm.GMChannelRouter;
+import org.herac.tuxguitar.gm.GMChannelRouterConfigurator;
 import org.herac.tuxguitar.io.base.TGFileFormatException;
-import org.herac.tuxguitar.player.base.MidiInstrument;
 import org.herac.tuxguitar.song.factory.TGFactory;
 import org.herac.tuxguitar.song.managers.TGSongManager;
 import org.herac.tuxguitar.song.models.TGBeat;
+import org.herac.tuxguitar.song.models.TGChannel;
+import org.herac.tuxguitar.song.models.TGDivisionType;
 import org.herac.tuxguitar.song.models.TGDuration;
 import org.herac.tuxguitar.song.models.TGMeasure;
 import org.herac.tuxguitar.song.models.TGNote;
@@ -26,7 +30,6 @@ import org.herac.tuxguitar.song.models.TGString;
 import org.herac.tuxguitar.song.models.TGTempo;
 import org.herac.tuxguitar.song.models.TGTimeSignature;
 import org.herac.tuxguitar.song.models.TGTrack;
-import org.herac.tuxguitar.song.models.TGDivisionType;
 import org.herac.tuxguitar.song.models.TGVoice;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
@@ -69,12 +72,11 @@ public class MusicXMLWriter {
 	public void writeSong(TGSong song) throws TGFileFormatException{
 		try {
 			this.manager = new TGSongManager();
-			this.manager.setSong(song);
 			this.document = newDocument();
 			
 			Node node = this.addNode(this.document,"score-partwise");
-			this.writeHeaders(node);
-			this.writeSong(node);
+			this.writeHeaders(song, node);
+			this.writeSong(song, node);
 			this.saveDocument();
 			
 			this.stream.flush();
@@ -84,56 +86,65 @@ public class MusicXMLWriter {
 		}
 	}
 	
-	private void writeHeaders(Node parent){
-		this.writeWork(parent);
-		this.writeIdentification(parent);
+	private void writeHeaders(TGSong song, Node parent){
+		this.writeWork(song, parent);
+		this.writeIdentification(song, parent);
 	}
 	
-	private void writeWork(Node parent){
-		this.addNode(this.addNode(parent,"work"),"work-title",this.manager.getSong().getName());
+	private void writeWork(TGSong song, Node parent){
+		this.addNode(this.addNode(parent,"work"),"work-title", song.getName());
 	}
 	
-	private void writeIdentification(Node parent){
+	private void writeIdentification(TGSong song, Node parent){
 		Node identification = this.addNode(parent,"identification");
 		this.addNode(this.addNode(identification,"encoding"), "software", "TuxGuitar");
-		this.addAttribute(this.addNode(identification,"creator",this.manager.getSong().getAuthor()),"type","composer");
+		this.addAttribute(this.addNode(identification,"creator",song.getAuthor()),"type","composer");
 	}
 	
-	private void writeSong(Node parent){
-		this.writePartList(parent);
-		this.writeParts(parent);
+	private void writeSong(TGSong song, Node parent){
+		this.writePartList(song, parent);
+		this.writeParts(song, parent);
 	}
 	
-	private void writePartList(Node parent){
+	private void writePartList(TGSong song, Node parent){
 		Node partList = this.addNode(parent,"part-list");
 		
-		Iterator tracks = this.manager.getSong().getTracks();
+		GMChannelRouter gmChannelRouter = new GMChannelRouter();
+		GMChannelRouterConfigurator gmChannelRouterConfigurator = new GMChannelRouterConfigurator(gmChannelRouter);
+		gmChannelRouterConfigurator.configureRouter(song.getChannels());
+		
+		Iterator<TGTrack> tracks = song.getTracks();
 		while(tracks.hasNext()){
 			TGTrack track = (TGTrack)tracks.next();
+			TGChannel channel = this.manager.getChannel(song, track.getChannelId());
 			
 			Node scoreParts = this.addNode(partList,"score-part");
 			this.addAttribute(scoreParts, "id", "P" + track.getNumber());
 			
 			this.addNode(scoreParts, "part-name", track.getName());
 			
-			Node scoreInstrument = this.addAttribute(this.addNode(scoreParts, "score-instrument"), "id", "P" + track.getNumber() + "-I1");
-			this.addNode(scoreInstrument, "instrument-name",MidiInstrument.INSTRUMENT_LIST[track.getChannel().getInstrument()].getName());
+			if( channel != null ){
+				GMChannelRoute gmChannelRoute = gmChannelRouter.getRoute(channel.getChannelId());
+				
+				Node scoreInstrument = this.addAttribute(this.addNode(scoreParts, "score-instrument"), "id", "P" + track.getNumber() + "-I1");
+				this.addNode(scoreInstrument, "instrument-name",channel.getName());
 			
-			Node midiInstrument = this.addAttribute(this.addNode(scoreParts, "midi-instrument"), "id", "P" + track.getNumber() + "-I1");
-			this.addNode(midiInstrument, "midi-channel",Integer.toString(track.getChannel().getChannel() + 1));
-			this.addNode(midiInstrument, "midi-program",Integer.toString(track.getChannel().getInstrument() + 1));
+				Node midiInstrument = this.addAttribute(this.addNode(scoreParts, "midi-instrument"), "id", "P" + track.getNumber() + "-I1");
+				this.addNode(midiInstrument, "midi-channel",Integer.toString(gmChannelRoute != null ? gmChannelRoute.getChannel1() + 1 : 16));
+				this.addNode(midiInstrument, "midi-program",Integer.toString(channel.getProgram() + 1));
+			}
 		}
 	}
 	
-	private void writeParts(Node parent){
-		Iterator tracks = this.manager.getSong().getTracks();
+	private void writeParts(TGSong song, Node parent){
+		Iterator<TGTrack> tracks = song.getTracks();
 		while(tracks.hasNext()){
 			TGTrack track = (TGTrack)tracks.next();
 			Node part = this.addAttribute(this.addNode(parent,"part"), "id", "P" + track.getNumber());
 			
 			TGMeasure previous = null;
 			
-			Iterator measures = track.getMeasures();
+			Iterator<TGMeasure> measures = track.getMeasures();
 			while(measures.hasNext()){
 				// TODO: Add multivoice support.
 				TGMeasure srcMeasure = (TGMeasure)measures.next();
@@ -413,7 +424,7 @@ public class MusicXMLWriter {
 					}
 					
 					if(previousBestDuration != null){
-						previousBestDuration.copy( previous.getVoice(0).getDuration() );
+						previous.getVoice(0).getDuration().copyFrom( previousBestDuration );
 					}else{
 						if(voice.isRestVoice()){
 							this.measure.removeBeat(beat);
@@ -421,7 +432,7 @@ public class MusicXMLWriter {
 							break;
 						}
 						TGDuration duration = TGDuration.fromTime(this.factory, (beatStart - previousStart) );
-						duration.copy( previous.getVoice(0).getDuration() );
+						previous.getVoice(0).getDuration().copyFrom( duration );
 					}
 				}
 				
@@ -445,7 +456,7 @@ public class MusicXMLWriter {
 						break;
 					}
 					TGDuration duration = TGDuration.fromTime(this.factory, (measureEnd - beatStart) );
-					duration.copy( voice.getDuration() );
+					voice.getDuration().copyFrom( duration );
 				}
 				previous = beat;
 			}

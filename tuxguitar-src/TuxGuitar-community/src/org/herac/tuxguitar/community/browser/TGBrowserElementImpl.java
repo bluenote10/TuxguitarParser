@@ -6,19 +6,24 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.herac.tuxguitar.gui.tools.browser.TGBrowserException;
-import org.herac.tuxguitar.gui.tools.browser.base.TGBrowserElement;
+import org.herac.tuxguitar.app.tools.browser.TGBrowserException;
+import org.herac.tuxguitar.app.tools.browser.base.TGBrowserElement;
 
-public class TGBrowserElementImpl extends TGBrowserElement {
+public class TGBrowserElementImpl implements TGBrowserElement {
 	
-	private TGBrowserElementImpl parent;
-	private Map properties;
+	private String name;
 	private String url;
+	private TGBrowserElementImpl parent;
+	private Map<String, String> properties;
 	
 	public TGBrowserElementImpl(String name) {
-		super(name);
+		this.name = name;
 		this.url = null;
-		this.properties = new HashMap();
+		this.properties = new HashMap<String, String>();
+	}
+	
+	public String getName() {
+		return this.name;
 	}
 	
 	public TGBrowserElementImpl getParent() {
@@ -45,7 +50,7 @@ public class TGBrowserElementImpl extends TGBrowserElement {
 		return (String)this.properties.get( key );
 	}
 	
-	public Iterator getProperties(){
+	public Iterator<Map.Entry<String, String>> getProperties(){
 		return this.properties.entrySet().iterator();
 	}
 	
@@ -55,7 +60,7 @@ public class TGBrowserElementImpl extends TGBrowserElement {
 	
 	public InputStream getInputStream() throws TGBrowserException {
 		try {
-			if( ! this.isFolder() ){
+			if(!this.isFolder() ){
 				URL url = new URL( this.url );
 				InputStream stream = url.openStream();
 				

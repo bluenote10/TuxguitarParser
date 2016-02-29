@@ -5,10 +5,13 @@ import org.eclipse.swt.internal.carbon.HICommand;
 import org.eclipse.swt.internal.carbon.OS;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
-import org.herac.tuxguitar.gui.TuxGuitar;
-import org.herac.tuxguitar.gui.actions.file.ExitAction;
-import org.herac.tuxguitar.gui.actions.help.ShowAboutAction;
-import org.herac.tuxguitar.gui.actions.settings.EditConfigAction;
+import org.herac.tuxguitar.app.TuxGuitar;
+import org.herac.tuxguitar.app.action.impl.file.TGExitAction;
+import org.herac.tuxguitar.app.action.impl.help.TGOpenAboutDialogAction;
+import org.herac.tuxguitar.app.action.impl.settings.TGOpenSettingsEditorAction;
+import org.herac.tuxguitar.util.TGContext;
+import org.herac.tuxguitar.util.TGException;
+import org.herac.tuxguitar.util.TGSynchronizer;
 
 public class MacMenu {
 	
@@ -24,8 +27,10 @@ public class MacMenu {
 	
 	private boolean enabled;
 	
-	public MacMenu(){
-		super();
+	private TGContext context;
+	
+	public MacMenu(TGContext context) {
+		this.context = context;
 	}
 	
 	public boolean isEnabled() {
@@ -107,17 +112,25 @@ public class MacMenu {
 	}
 	
 	public int handleQuitCommand(){
-		TuxGuitar.instance().getAction(ExitAction.NAME).process(null);
+		this.executeAction(TGExitAction.NAME);
 		return OS.noErr;
 	}
 	
 	public int handleAboutCommand(){
-		TuxGuitar.instance().getAction(ShowAboutAction.NAME).process(null);
+		this.executeAction(TGOpenAboutDialogAction.NAME);
 		return OS.noErr;
 	}
 	
 	public int handlePreferencesCommand(){
-		TuxGuitar.instance().getAction(EditConfigAction.NAME).process(null);
+		this.executeAction(TGOpenSettingsEditorAction.NAME);
 		return OS.noErr;
+	}
+	
+	private void executeAction(final String actionId){
+		TGSynchronizer.getInstance(this.context).executeLater(new Runnable() {
+			public void run() throws TGException {
+				TuxGuitar.getInstance().getActionManager().execute(actionId);
+			}
+		});
 	}
 }

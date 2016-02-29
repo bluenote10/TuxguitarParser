@@ -1,36 +1,39 @@
 package org.herac.tuxguitar.cocoa.toolbar;
 
-import org.herac.tuxguitar.gui.TuxGuitar;
-import org.herac.tuxguitar.gui.system.plugins.TGPluginException;
-import org.herac.tuxguitar.gui.system.plugins.base.TGPluginAdapter;
+import org.herac.tuxguitar.app.TuxGuitar;
+import org.herac.tuxguitar.cocoa.TGCocoaIntegrationPlugin;
+import org.herac.tuxguitar.util.TGContext;
+import org.herac.tuxguitar.util.plugin.TGPlugin;
+import org.herac.tuxguitar.util.plugin.TGPluginException;
 
-public class MacToolbarPlugin extends TGPluginAdapter {
+public class MacToolbarPlugin implements TGPlugin {
 	
 	private MacToolbar macToolbar;
 	
-	public void init() throws TGPluginException {
-		// Nothing todo
+	public String getModuleId() {
+		return TGCocoaIntegrationPlugin.MODULE_ID;
 	}
 	
-	public void close() throws TGPluginException {
+	public void connect(TGContext context) throws TGPluginException {
 		try {
 			if( this.macToolbar != null ){
-				this.macToolbar.finalize();
+				this.macToolbar.setEnabled(true);
+			 }else {
+				this.macToolbar = new MacToolbar();
+				this.macToolbar.setEnabled(true);
+				this.macToolbar.init( TuxGuitar.getInstance().getShell() );
 			}
 		} catch( Throwable throwable ){
 			throw new TGPluginException( throwable );
 		}
 	}
-	
-	public void setEnabled(boolean enabled) throws TGPluginException {
+
+	public void disconnect(TGContext context) throws TGPluginException {
 		try {
 			if( this.macToolbar != null ){
-				this.macToolbar.setEnabled(enabled);
-			}else if(enabled){
-				this.macToolbar = new MacToolbar();
-				this.macToolbar.setEnabled(true);
-				this.macToolbar.init( TuxGuitar.instance().getShell() );
-			}
+				this.macToolbar.setEnabled(false);
+				this.macToolbar.finalize();
+			 }
 		} catch( Throwable throwable ){
 			throw new TGPluginException( throwable );
 		}

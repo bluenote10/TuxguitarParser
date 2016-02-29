@@ -1,21 +1,20 @@
-/*
- * Created on 16-dic-2005
- *
- * TODO To change the template for this generated file go to
- * Window - Preferences - Java - Code Style - Code Templates
- */
 package org.herac.tuxguitar.io.tg.v07;
 
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+import org.herac.tuxguitar.gm.GMChannelRoute;
 import org.herac.tuxguitar.io.base.TGFileFormat;
 import org.herac.tuxguitar.io.base.TGFileFormatException;
 import org.herac.tuxguitar.io.base.TGInputStreamBase;
 import org.herac.tuxguitar.song.factory.TGFactory;
+import org.herac.tuxguitar.song.managers.TGSongManager;
 import org.herac.tuxguitar.song.models.TGBeat;
+import org.herac.tuxguitar.song.models.TGChannel;
+import org.herac.tuxguitar.song.models.TGChannelParameter;
 import org.herac.tuxguitar.song.models.TGColor;
+import org.herac.tuxguitar.song.models.TGDivisionType;
 import org.herac.tuxguitar.song.models.TGDuration;
 import org.herac.tuxguitar.song.models.TGMeasure;
 import org.herac.tuxguitar.song.models.TGMeasureHeader;
@@ -26,16 +25,9 @@ import org.herac.tuxguitar.song.models.TGString;
 import org.herac.tuxguitar.song.models.TGTempo;
 import org.herac.tuxguitar.song.models.TGTimeSignature;
 import org.herac.tuxguitar.song.models.TGTrack;
-import org.herac.tuxguitar.song.models.TGDivisionType;
 import org.herac.tuxguitar.song.models.TGVoice;
 import org.herac.tuxguitar.song.models.effects.TGEffectBend;
 
-/**
- * @author julian
- *
- * TODO To change the template for this generated type comment go to
- * Window - Preferences - Java - Code Style - Code Templates
- */
 public class TGInputStream implements TGInputStreamBase{
 	private static final String TG_VERSION = "TG_DEVEL-0.01";
 	
@@ -54,7 +46,7 @@ public class TGInputStream implements TGInputStreamBase{
 	}
 	
 	public TGFileFormat getFileFormat(){
-		return new TGFileFormat("TuxGuitar","*.tg");
+		return new TGFileFormat("TuxGuitar 0.7", new String[]{"tg"});
 	}
 	
 	public boolean isSupportedVersion(String version){
@@ -85,7 +77,7 @@ public class TGInputStream implements TGInputStreamBase{
 				this.dataInputStream.close();
 				return song;
 			}
-			throw new TGFileFormatException("Unsopported Version");
+			throw new TGFileFormatException("Unsupported Version");
 		}catch (Throwable throwable) {
 			throw new TGFileFormatException(throwable);
 		}
@@ -127,7 +119,13 @@ public class TGInputStream implements TGInputStreamBase{
 		track.setName(readString());
 		
 		//leo el canal
-		readChannel(track);
+		readChannel(song,track);
+		
+		//leo el solo
+		track.setSolo(readBoolean());
+		
+		//leo el mute
+		track.setMute(readBoolean());
 		
 		//leo la cantidad de compases
 		int measureCount = readInt();
@@ -246,39 +244,65 @@ public class TGInputStream implements TGInputStreamBase{
 		return beat;
 	}
 	
-	private void readChannel(TGTrack track){
+	private void readChannel(TGSong song, TGTrack track){
+		TGChannel channel = this.factory.newChannel();
+		TGChannelParameter gmChannel1Param = this.factory.newChannelParameter();
+		TGChannelParameter gmChannel2Param = this.factory.newChannelParameter();
+		
 		//leo el canal
-		track.getChannel().setChannel(readShort());
+		int channel1 = readShort();
+		gmChannel1Param.setKey(GMChannelRoute.PARAMETER_GM_CHANNEL_1);
+		gmChannel1Param.setValue(Integer.toString(channel1));
 		
 		//leo el canal de efectos
-		track.getChannel().setEffectChannel(readShort());
+		int channel2 = readShort();
+		gmChannel2Param.setKey(GMChannelRoute.PARAMETER_GM_CHANNEL_2);
+		gmChannel2Param.setValue(Integer.toString(channel2));
+		
+		// Parseo el banco de sonidos
+		channel.setBank( channel1 == 9 ? TGChannel.DEFAULT_PERCUSSION_BANK : TGChannel.DEFAULT_BANK);
 		
 		//leo el instrumento
-		track.getChannel().setInstrument(readShort());
+		channel.setProgram(readShort());
 		
 		//leo el volumen
-		track.getChannel().setVolume(readShort());
+		channel.setVolume(readShort());
 		
 		//leo el balance
-		track.getChannel().setBalance(readShort());
+		channel.setBalance(readShort());
 		
 		//leo el chorus
-		track.getChannel().setChorus(readShort());
+		channel.setChorus(readShort());
 		
 		//leo el reverb
-		track.getChannel().setReverb(readShort());
+		channel.setReverb(readShort());
 		
 		//leo el phaser
-		track.getChannel().setPhaser(readShort());
+		channel.setPhaser(readShort());
 		
 		//leo el tremolo
-		track.getChannel().setTremolo(readShort());
+		channel.setTremolo(readShort());
 		
-		//leo el solo
-		track.setSolo(readBoolean());
-		
-		//leo el mute
-		track.setMute(readBoolean());
+		//------------------------------------------//
+		for( int i = 0 ; i < song.countChannels() ; i ++ ){
+			TGChannel channelAux = song.getChannel(i);
+			for( int n = 0 ; n < channelAux.countParameters() ; n ++ ){
+				TGChannelParameter channelParameter = channelAux.getParameter( n );
+				if( channelParameter.getKey().equals(GMChannelRoute.PARAMETER_GM_CHANNEL_1) ){
+					if( Integer.toString(channel1).equals(channelParameter.getValue()) ){
+						channel.setChannelId(channelAux.getChannelId());
+					}
+				}
+			}
+		}
+		if( channel.getChannelId() <= 0 ){
+			channel.setChannelId( song.countChannels() + 1 );
+			channel.setName(new TGSongManager(this.factory).createChannelNameFromProgram(song, channel));
+			channel.addParameter(gmChannel1Param);
+			channel.addParameter(gmChannel2Param);
+			song.addChannel(channel);
+		}
+		track.setChannelId(channel.getChannelId());
 	}
 	
 	private TGBeat readSilence(TGMeasure measure, TGBeat previous){

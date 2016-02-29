@@ -11,16 +11,19 @@ import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
+import org.herac.tuxguitar.app.TuxGuitar;
+import org.herac.tuxguitar.app.util.DialogUtils;
 import org.herac.tuxguitar.community.TGCommunitySingleton;
 import org.herac.tuxguitar.community.auth.TGCommunityAuthDialog;
-import org.herac.tuxguitar.gui.TuxGuitar;
-import org.herac.tuxguitar.gui.util.DialogUtils;
+import org.herac.tuxguitar.util.TGContext;
 
 public class TGBrowserAuthDialog {
 	
+	private TGContext context;
 	private boolean accepted;
 	
-	public TGBrowserAuthDialog(){
+	public TGBrowserAuthDialog(TGContext context){
+		this.context = context;
 		this.accepted = false;
 	}
 	
@@ -31,7 +34,7 @@ public class TGBrowserAuthDialog {
 		
 		dialog.setLayout(new GridLayout());
 		dialog.setLayoutData(new GridData(SWT.FILL,SWT.FILL,true,true));
-		dialog.setImage(TuxGuitar.instance().getIconManager().getAppIcon());
+		dialog.setImage(TuxGuitar.getInstance().getIconManager().getAppIcon());
 		dialog.setText(TuxGuitar.getProperty("tuxguitar-community.browser-dialog.title"));
 		
 		Group group = new Group(dialog,SWT.SHADOW_ETCHED_IN);
@@ -46,17 +49,17 @@ public class TGBrowserAuthDialog {
 		
 		final Text usernameText = new Text(group, SWT.BORDER | SWT.READ_ONLY );
 		usernameText.setLayoutData(makeUsernameTextData());
-		usernameText.setText( TGCommunitySingleton.getInstance().getAuth().getUsername() );
+		usernameText.setText( TGCommunitySingleton.getInstance(getContext()).getAuth().getUsername() );
 		
 		final Button usernameChooser = new Button(group, SWT.PUSH );
 		usernameChooser.setText("...");
 		usernameChooser.addSelectionListener( new SelectionAdapter() {
 			public void widgetSelected(SelectionEvent e) {
-				TGCommunityAuthDialog authDialog = new TGCommunityAuthDialog();
+				TGCommunityAuthDialog authDialog = new TGCommunityAuthDialog(getContext());
 				authDialog.open( dialog );
 				if( authDialog.isAccepted() ){
-					TGCommunitySingleton.getInstance().getAuth().update();
-					usernameText.setText( TGCommunitySingleton.getInstance().getAuth().getUsername() );
+					TGCommunitySingleton.getInstance(getContext()).getAuth().update();
+					usernameText.setText( TGCommunitySingleton.getInstance(getContext()).getAuth().getUsername() );
 				}
 			}
 		} );
@@ -124,5 +127,9 @@ public class TGBrowserAuthDialog {
 	
 	public boolean isAccepted(){
 		return this.accepted;
+	}
+	
+	public TGContext getContext() {
+		return context;
 	}
 }

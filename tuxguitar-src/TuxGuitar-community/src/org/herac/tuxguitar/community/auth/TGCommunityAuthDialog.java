@@ -14,50 +14,37 @@ import org.eclipse.swt.widgets.Link;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
+import org.herac.tuxguitar.app.TuxGuitar;
+import org.herac.tuxguitar.app.util.DialogUtils;
 import org.herac.tuxguitar.community.TGCommunitySingleton;
 import org.herac.tuxguitar.community.utils.TGCommunityWeb;
-import org.herac.tuxguitar.gui.TuxGuitar;
-import org.herac.tuxguitar.gui.util.DialogUtils;
-import org.herac.tuxguitar.util.TGSynchronizer;
+import org.herac.tuxguitar.util.TGContext;
+import org.herac.tuxguitar.util.TGException;
 
 public class TGCommunityAuthDialog {
 	
-	private boolean accepted;
+	private TGContext context;
 	private TGCommunityAuth auth;
+	private boolean accepted;
 	
-	public TGCommunityAuthDialog(){
-		this.auth = TGCommunitySingleton.getInstance().getAuth();
+	public TGCommunityAuthDialog(TGContext context){
+		this.context = context;
+		this.auth = TGCommunitySingleton.getInstance(this.context).getAuth();
 		this.accepted = false;
 	}
 	
 	public void open() {
-		this.open( TuxGuitar.instance().getShell() );
+		this.open( TuxGuitar.getInstance().getShell() );
 	}
 	
 	public void open(final Shell shell) {
-		try {
-			if( shell != null && !shell.isDisposed() ){
-				TGSynchronizer.instance().addRunnable(new TGSynchronizer.TGRunnable() {
-					public void run() throws Throwable {
-						if( !shell.isDisposed() ){
-							doOpen( shell );
-						}
-					}
-				});
-			}
-		}catch(Throwable throwable){
-			throwable.printStackTrace();
-		}
-	}
-	
-	protected void doOpen(Shell shell) {
 		this.accepted = false;
 		
 		final Shell dialog = DialogUtils.newDialog(shell, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
 		
 		dialog.setLayout(new GridLayout());
 		dialog.setLayoutData(new GridData(SWT.FILL,SWT.FILL,true,true));
-		dialog.setImage(TuxGuitar.instance().getIconManager().getAppIcon());
+		dialog.setImage(TuxGuitar.getInstance().getIconManager().getAppIcon());
 		dialog.setText(TuxGuitar.getProperty("tuxguitar-community.auth-dialog.title"));
 		
 		Group group = new Group(dialog,SWT.SHADOW_ETCHED_IN);
@@ -98,8 +85,8 @@ public class TGCommunityAuthDialog {
 				final String href = event.text;
 				if( href != null ){
 					new Thread( new Runnable() {
-						public void run() {
-							TGCommunityWeb.open( href );
+						public void run() throws TGException {
+							TGCommunityWeb.open(getContext(), href);
 						}
 					} ).start();
 				}
@@ -172,5 +159,9 @@ public class TGCommunityAuthDialog {
 	
 	public boolean isAccepted(){
 		return this.accepted;
+	}
+
+	public TGContext getContext() {
+		return context;
 	}
 }

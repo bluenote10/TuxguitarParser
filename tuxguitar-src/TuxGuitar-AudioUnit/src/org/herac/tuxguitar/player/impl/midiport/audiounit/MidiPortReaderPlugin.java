@@ -1,28 +1,18 @@
 package org.herac.tuxguitar.player.impl.midiport.audiounit;
 
-import org.herac.tuxguitar.gui.system.plugins.base.TGMidiOutputPortProviderPlugin;
 import org.herac.tuxguitar.player.base.MidiOutputPortProvider;
+import org.herac.tuxguitar.player.plugin.TGMidiOutputPortProviderPlugin;
+import org.herac.tuxguitar.util.TGContext;
 
 public class MidiPortReaderPlugin extends TGMidiOutputPortProviderPlugin{
-
-	protected MidiOutputPortProvider getProvider() {
+	
+	public static final String MODULE_ID = "tuxguitar-audiounit";
+	
+	protected MidiOutputPortProvider createProvider(TGContext context) {
 		return new MidiPortReaderAudioUnit();
 	}
 
-	public String getAuthor() {
-		return "Auria";
+	public String getModuleId() {
+		return MODULE_ID;
 	}
-
-	public String getDescription() {		
-		return "Core Audio output plugin";
-	}
-
-	public String getName() {
-		return "Core Audio output plugin";
-	}
-
-	public String getVersion() {
-		return "1.0";
-	}
-	
 }

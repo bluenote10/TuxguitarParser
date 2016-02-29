@@ -1,10 +1,13 @@
 package org.herac.tuxguitar.io.gervill;
 
-import org.herac.tuxguitar.gui.system.plugins.TGPluginException;
-import org.herac.tuxguitar.gui.system.plugins.base.TGExporterPlugin;
 import org.herac.tuxguitar.io.base.TGRawExporter;
+import org.herac.tuxguitar.io.plugin.TGExporterPlugin;
+import org.herac.tuxguitar.util.TGContext;
+import org.herac.tuxguitar.util.plugin.TGPluginException;
 
 public class MidiToAudioPlugin extends TGExporterPlugin{
+	
+	public static final String MODULE_ID = "tuxguitar-gervill";
 	
 	private boolean available;
 	
@@ -12,49 +15,43 @@ public class MidiToAudioPlugin extends TGExporterPlugin{
 		this.available = MidiToAudioSynth.instance().isAvailable();
 	}
 	
-	public void init() throws TGPluginException {
+	public void connect(TGContext context) throws TGPluginException {
 		if( this.available ){
-			super.init();
+			super.connect(context);
 		}
 	}
 	
-	public void close() throws TGPluginException {
+	public void disconnect(TGContext context) throws TGPluginException {
 		if( this.available ){
-			super.close();
+			super.disconnect(context);
 		}
 	}
+//	public void init(TGContext context) throws TGPluginException {
+//		if( this.available ){
+//			super.init(context);
+//		}
+//	}
+//	
+//	public void close() throws TGPluginException {
+//		if( this.available ){
+//			super.close();
+//		}
+//	}
+//	
+//	public void setEnabled( boolean enabled ) throws TGPluginException {
+//		if( this.available ){
+//			super.setEnabled( enabled );
+//		}
+//	}
 	
-	public void setEnabled( boolean enabled ) throws TGPluginException {
-		if( this.available ){
-			super.setEnabled( enabled );
-		}
-	}
-	
-	protected TGRawExporter getExporter() throws TGPluginException {
+	protected TGRawExporter createExporter(TGContext context) throws TGPluginException {
 		if( this.available ){
 			return new MidiToAudioExporter();
 		}
 		return null;
 	}
 	
-	public String getVersion() {
-		return "1.1";
-	}
-	
-	public String getAuthor() {
-		return "Julian Casadesus <julian@casadesus.com.ar>";
-	}
-	
-	public String getName() {
-		return "Gervill Plugin";
-	}
-	
-	public String getDescription() {
-		String description = new String();
-		description += ("The purpose of this plugin is to add gervill support to tuxguitar.\n");
-		description += ("The current version of this plugin includes \"Export to Audio\" feature.\n");
-		description += ("See more about Gervill: https://gervill.dev.java.net/\n\n");
-		description += ("This plugin will only work if gervill synthesizer is installed in your JVM");
-		return description;
+	public String getModuleId(){
+		return MODULE_ID;
 	}
 }

@@ -4,7 +4,7 @@ import java.security.MessageDigest;
 
 import org.herac.tuxguitar.community.auth.utils.Base64Decoder;
 import org.herac.tuxguitar.community.auth.utils.Base64Encoder;
-import org.herac.tuxguitar.gui.system.config.TGConfigManager;
+import org.herac.tuxguitar.util.configuration.TGConfigManager;
 
 public class TGCommunityAuth {
 	
@@ -65,11 +65,11 @@ public class TGCommunityAuth {
 	public void save( TGConfigManager config ){
 		String data = new String(this.getUsername() + STRING_SEPARATOR + this.getPassword() );
 		String encodedData = new String(Base64Encoder.encode( data.getBytes() ) ) ;
-		config.setProperty("community.account", encodedData );
+		config.setValue("community.account", encodedData );
 	}
 	
 	public void load( TGConfigManager config ) {
-		String encodedData = config.getStringConfigValue("community.account");
+		String encodedData = config.getStringValue("community.account");
 		if( encodedData != null && encodedData.length() > 0 ){
 			String data = new String(Base64Decoder.decode( encodedData.getBytes() ));
 			String[] values = data.split(STRING_SEPARATOR);

@@ -1,59 +1,34 @@
 package org.herac.tuxguitar.tray;
 
-import org.herac.tuxguitar.gui.system.plugins.base.TGPluginAdapter;
+import org.herac.tuxguitar.util.TGContext;
+import org.herac.tuxguitar.util.plugin.TGPlugin;
+import org.herac.tuxguitar.util.plugin.TGPluginException;
 
-public class TGTrayPlugin extends TGPluginAdapter {
+public class TGTrayPlugin implements TGPlugin {
 	
-	private boolean loaded;
+	public static final String MODULE_ID = "tuxguitar-tray";
+	
 	private TGTray tray;
 	
 	public TGTrayPlugin(){
 		super();
 	}
 	
-	public void init() {
-		this.tray = new TGTray();
+	public String getModuleId(){
+		return MODULE_ID;
 	}
-	
-	public void close() {
-		this.removePlugin();
-	}
-	
-	public void setEnabled(boolean enabled) {
-		if(enabled){
-			this.addPlugin();
-		}else{
-			this.removePlugin();
-		}
-	}
-	
-	protected void addPlugin(){
-		if(!this.loaded){
+
+	public void connect(TGContext context) throws TGPluginException {
+		if( this.tray == null ) {
+			this.tray = new TGTray(context);
 			this.tray.addTray();
-			this.loaded = true;
 		}
 	}
-	
-	protected void removePlugin(){
-		if(this.loaded){
+
+	public void disconnect(TGContext context) throws TGPluginException {
+		if( this.tray != null ) {
 			this.tray.removeTray();
-			this.loaded = false;
+			this.tray = null;
 		}
-	}
-	
-	public String getAuthor() {
-		return "Julian Casadesus <julian@casadesus.com.ar>";
-	}
-	
-	public String getName() {
-		return "System Tray plugin";
-	}
-	
-	public String getDescription() {
-		return "System Tray plugin for tuxguitar";
-	}
-	
-	public String getVersion() {
-		return "1.0";
 	}
 }

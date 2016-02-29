@@ -10,24 +10,27 @@ import javax.sound.midi.MidiUnavailableException;
 import javax.sound.midi.Sequencer;
 import javax.sound.midi.Synthesizer;
 
-import org.herac.tuxguitar.gui.TuxGuitar;
-import org.herac.tuxguitar.player.base.MidiPlayerException;
+import org.herac.tuxguitar.app.TuxGuitar;
 import org.herac.tuxguitar.player.base.MidiOutputPort;
 import org.herac.tuxguitar.player.base.MidiOutputPortProvider;
+import org.herac.tuxguitar.player.base.MidiPlayerException;
+import org.herac.tuxguitar.util.TGContext;
 
 public class MidiPortProviderImpl implements MidiOutputPortProvider{
 	
-	public MidiPortProviderImpl(){
-		super();
+	private TGContext context;
+	
+	public MidiPortProviderImpl(TGContext context){
+		this.context = context;
 	}
 	
-	public List listPorts() throws MidiPlayerException{
+	public List<MidiOutputPort> listPorts() throws MidiPlayerException{
 		try {
-			List ports = new ArrayList();
+			List<MidiOutputPort> ports = new ArrayList<MidiOutputPort>();
 			MidiDevice.Info[] infos = MidiSystem.getMidiDeviceInfo();
 			for(int i = 0; i < infos.length; i++){
 				try {
-					Iterator it = ports.iterator();
+					Iterator<MidiOutputPort> it = ports.iterator();
 					boolean exists = false;
 					while(it.hasNext()){
 						if( ((MidiOutputPort)it.next()).getKey().equals(infos[i].getName()) ){
@@ -41,7 +44,7 @@ public class MidiPortProviderImpl implements MidiOutputPortProvider{
 							continue;
 						}
 						if(device instanceof Synthesizer){
-							ports.add(new MidiPortSynthesizer((Synthesizer)device));
+							ports.add(new MidiPortSynthesizer(this.context, (Synthesizer)device));
 						}
 						else{
 							ports.add(new MidiPortOut(device));
