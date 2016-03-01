@@ -230,7 +230,18 @@ public class MidiSequenceParser {
 			for (int noteIdx = 0; noteIdx < voice.countNotes(); noteIdx++) {
 				TGNote note = voice.getNote(noteIdx);
 				if (!note.isTiedNote()) {
-					int key = (this.transpose + track.getOffset() + note.getValue() + ((TGString)track.getStrings().get(note.getString() - 1)).getValue());
+					// FK -- originally this was just this:
+					//
+					//     int key = (this.transpose + track.getOffset() + note.getValue() + ((TGString)track.getStrings().get(note.getString() - 1)).getValue());
+					//
+					// This had the problem that a transpose value is applied to all tracks,
+					// also the percussion track, which is typically not desired.
+					// The following modification excludes a percussion channel from transposing.
+					int actualTranspose = 0;
+					if (!tgChannel.isPercussionChannel()) {
+						actualTranspose = this.transpose;
+					}
+					int key = (actualTranspose + track.getOffset() + note.getValue() + ((TGString)track.getStrings().get(note.getString() - 1)).getValue());
 					
 					long start = applyStrokeStart(note, (th.getStart() + startMove) , stroke);
 					long duration = applyStrokeDuration(note, getRealNoteDuration(sh, track, note, tempo, th.getDuration(), mIndex,bIndex), stroke);
